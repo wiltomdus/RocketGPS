@@ -10,10 +10,14 @@ environment:
   sdk: '>=3.3.1 <4.0.0'
 
 dependencies:
+  flex_color_scheme: ^7.3.1
   flutter:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  geolocator: ^11.0.0
+  google_fonts: ^4.0.4
+  google_maps_flutter: ^2.6.1
 
 dev_dependencies:
   flutter_test:

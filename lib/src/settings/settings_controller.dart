@@ -16,15 +16,18 @@ class SettingsController with ChangeNotifier {
   // Make ThemeMode a private variable so it is not updated directly without
   // also persisting the changes with the SettingsService.
   late ThemeMode _themeMode;
+  // late String _googleMapsApiKey;
 
   // Allow Widgets to read the user's preferred ThemeMode.
   ThemeMode get themeMode => _themeMode;
+  // String get googleMapsApiKey => _googleMapsApiKey;
 
   /// Load the user's settings from the SettingsService. It may load from a
   /// local database or the internet. The controller only knows it can load the
   /// settings from the service.
   Future<void> loadSettings() async {
     _themeMode = await _settingsService.themeMode();
+    // _googleMapsApiKey = await _settingsService.googleMapsApiKey();
 
     // Important! Inform listeners a change has occurred.
     notifyListeners();
@@ -47,4 +50,14 @@ class SettingsController with ChangeNotifier {
     // SettingService.
     await _settingsService.updateThemeMode(newThemeMode);
   }
+
+  // Future<void> updateGoogleMapsApiKey(String newGoogleMapsApiKey) async {
+  //   if (newGoogleMapsApiKey == _googleMapsApiKey) return;
+
+  //   _googleMapsApiKey = newGoogleMapsApiKey;
+
+  //   notifyListeners();
+
+  //   await _settingsService.updateGoogleMapsApiKey(newGoogleMapsApiKey);
+  // }
 }

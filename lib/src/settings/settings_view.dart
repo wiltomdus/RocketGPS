@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'settings_controller.dart';
 
@@ -13,6 +14,8 @@ class SettingsView extends StatelessWidget {
 
   final SettingsController controller;
 
+  // final storage = const FlutterSecureStorage();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,28 +24,36 @@ class SettingsView extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        // Glue the SettingsController to the theme selection DropdownButton.
-        //
-        // When a user selects a theme from the dropdown list, the
-        // SettingsController is updated, which rebuilds the MaterialApp.
-        child: DropdownButton<ThemeMode>(
-          // Read the selected themeMode from the controller
-          value: controller.themeMode,
-          // Call the updateThemeMode method any time the user selects a theme.
-          onChanged: controller.updateThemeMode,
-          items: const [
-            DropdownMenuItem(
-              value: ThemeMode.system,
-              child: Text('System Theme'),
+        child: Column(
+          children: [
+            // Existing DropdownButton for theme selection
+            DropdownButton<ThemeMode>(
+              value: controller.themeMode,
+              onChanged: controller.updateThemeMode,
+              items: const [
+                DropdownMenuItem(
+                  value: ThemeMode.system,
+                  child: Text('System Theme'),
+                ),
+                DropdownMenuItem(
+                  value: ThemeMode.light,
+                  child: Text('Light Theme'),
+                ),
+                DropdownMenuItem(
+                  value: ThemeMode.dark,
+                  child: Text('Dark Theme'),
+                )
+              ],
             ),
-            DropdownMenuItem(
-              value: ThemeMode.light,
-              child: Text('Light Theme'),
-            ),
-            DropdownMenuItem(
-              value: ThemeMode.dark,
-              child: Text('Dark Theme'),
-            )
+            // New TextField for Google Maps API Key
+            // TextField(
+            //   onChanged: (value) async {
+            //     await storage.write(key: 'google_maps_api_key', value: value);
+            //   },
+            //   decoration: const InputDecoration(
+            //     labelText: 'Google Maps API Key',
+            //   ),
+            // ),
           ],
         ),
       ),
