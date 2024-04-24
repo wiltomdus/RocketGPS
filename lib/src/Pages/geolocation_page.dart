@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:gps_link/src/services/bluetooth_service.dart';
 import 'package:gps_link/widgets/custom_card.dart';
 
 class GeolocationPage extends StatefulWidget {
@@ -15,18 +18,46 @@ class GeolocationPage extends StatefulWidget {
 }
 
 class _GeolocationPageState extends State<GeolocationPage> {
+  Bluetooth bluetooth = Bluetooth();
   final Completer<GoogleMapController> _controller = Completer();
   Set<Marker> markers = {};
   Position? _currentPosition;
+  Position? _rocketPosition;
   LatLng? get currentLocation =>
       _currentPosition != null ? LatLng(_currentPosition!.latitude, _currentPosition!.longitude) : null;
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      _determinePosition();
-      refreshMapAsync();
+    // bluetooth.connect(bluetooth);
+    // bluetooth.connection!.input?.listen((Uint8List data) {
+    //   String nmeaData = ascii.decode(data);
+    //   LatLng location = bluetooth.parseNmeaData(nmeaData);
+    //   setState(() {
+    //     _rocketPosition = Position(
+    //         longitude: location.longitude,
+    //         latitude: location.latitude,
+    //         timestamp: DateTime.now(),
+    //         accuracy: 0.0,
+    //         altitude: 0.0,
+    //         altitudeAccuracy: 0.0,
+    //         heading: 0.0,
+    //         headingAccuracy: 0.0,
+    //         speed: 0.0,
+    //         speedAccuracy: 0.0);
+    //     markers = {
+    //       Marker(
+    //         markerId: MarkerId('rocket'),
+    //         position: location,
+    //         infoWindow: InfoWindow(title: 'Rocket'),
+    //       ),
+    //     };
+    //   });
+    // });
+    _determinePosition().then((Position position) {
+      setState(() {
+        _currentPosition = position;
+      });
     });
   }
 
@@ -42,43 +73,48 @@ class _GeolocationPageState extends State<GeolocationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        CustomCard(
-          title: "Rocket Location",
-          trailing: IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              _determinePosition();
-              refreshMapAsync();
-            },
-          ),
-          children: Text(
-            'Latitude: ${_currentPosition?.latitude ?? 'Unknown'}\n'
-            'Longitude: ${_currentPosition?.longitude ?? 'Unknown'}\n'
-            'Altitude: ${_currentPosition?.altitude ?? 'Unknown'}\n'
-            'Accuracy: ${_currentPosition?.accuracy ?? 'Unknown'}\n'
-            'Speed: ${_currentPosition?.speed ?? 'Unknown'}\n'
-            'Speed Accuracy: ${_currentPosition?.speedAccuracy ?? 'Unknown'}\n'
-            'Heading: ${_currentPosition?.heading ?? 'Unknown'}\n',
-          ),
-        ),
-        Expanded(
-          child: GoogleMap(
-            onMapCreated: (GoogleMapController controller) {
-              _controller.complete(controller);
-            },
-            initialCameraPosition: const CameraPosition(
-              target: LatLng(45.5017, -73.5673), // Defaults to Montreal if no location
-              zoom: 10,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Geolocation'),
+      ),
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          CustomCard(
+            title: "Rocket Location",
+            trailing: IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                _determinePosition();
+                refreshMapAsync();
+              },
             ),
-            markers: markers,
-            myLocationEnabled: true, // Show the blue dot on the map
-            myLocationButtonEnabled: true, // Show the button to center the map on the current location
+            children: Text(
+              'Latitude: ${_currentPosition?.latitude ?? 'Unknown'}\n'
+              'Longitude: ${_currentPosition?.longitude ?? 'Unknown'}\n'
+              'Altitude: ${_currentPosition?.altitude ?? 'Unknown'}\n'
+              'Accuracy: ${_currentPosition?.accuracy ?? 'Unknown'}\n'
+              'Speed: ${_currentPosition?.speed ?? 'Unknown'}\n'
+              'Speed Accuracy: ${_currentPosition?.speedAccuracy ?? 'Unknown'}\n'
+              'Heading: ${_currentPosition?.heading ?? 'Unknown'}\n',
+            ),
           ),
-        ),
-      ],
+          Expanded(
+            child: GoogleMap(
+              onMapCreated: (GoogleMapController controller) {
+                _controller.complete(controller);
+              },
+              initialCameraPosition: const CameraPosition(
+                target: LatLng(45.5017, -73.5673), // Defaults to Montreal if no location
+                zoom: 10,
+              ),
+              markers: markers,
+              myLocationEnabled: true, // Show the blue dot on the map
+              myLocationButtonEnabled: true, // Show the button to center the map on the current location
+            ),
+          ),
+        ],
+      ),
     );
   }
 

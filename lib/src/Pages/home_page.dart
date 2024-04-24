@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gps_link/src/Pages/bluetooth_scan_page.dart';
 import 'package:gps_link/src/Pages/geolocation_page.dart';
 import 'package:gps_link/src/Pages/terminal_page.dart';
 
@@ -17,7 +18,7 @@ class _HomePageState extends State<HomePage> {
   Widget _getCurrentPage() {
     switch (_currentIndex) {
       case 0:
-        return const HomePage();
+        return const BluetoothScanPage();
       case 1:
         return const GeolocationPage();
       case 2:
@@ -48,8 +49,8 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _currentIndex,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+            icon: Icon(Icons.satellite),
+            label: 'Scan',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.map),

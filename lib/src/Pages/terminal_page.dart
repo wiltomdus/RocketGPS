@@ -12,6 +12,6 @@ class TerminalPage extends StatefulWidget {
 class _TerminalPageState extends State<TerminalPage> {
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return Scaffold(appBar: AppBar(title: const Text('Terminal')), body: const Center(child: Text('Terminal Page')));
   }
 }
