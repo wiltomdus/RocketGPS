@@ -18,7 +18,7 @@ class GeolocationPage extends StatefulWidget {
 }
 
 class _GeolocationPageState extends State<GeolocationPage> {
-  Bluetooth bluetooth = Bluetooth();
+  BluetoothService bluetooth = BluetoothService();
   final Completer<GoogleMapController> _controller = Completer();
   Set<Marker> markers = {};
   Position? _currentPosition;

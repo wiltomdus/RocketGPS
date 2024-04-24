@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial_ble/flutter_bluetooth_serial_ble.dart';
+import 'package:gps_link/src/services/bluetooth_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class BluetoothScanPage extends StatefulWidget {
@@ -21,11 +22,6 @@ class _BluetoothScanPageState extends State<BluetoothScanPage> {
   void initState() {
     super.initState();
     requestPermissions();
-    FlutterBluetoothSerial.instance.startDiscovery().listen((result) {
-      setState(() {
-        _devices.add(result.device);
-      });
-    });
   }
 
   Future<void> requestPermissions() async {
@@ -57,18 +53,28 @@ class _BluetoothScanPageState extends State<BluetoothScanPage> {
             return ListView.builder(
               itemCount: _devices.length + bondedDevices.length,
               itemBuilder: (context, index) {
+                Color tileColor = Colors.white;
                 if (index < bondedDevices.length) {
+                  if (BluetoothService().connectedDevice != null &&
+                      BluetoothService().connectedDevice!.address == bondedDevices[index].address) {
+                    tileColor = Colors.green;
+                  }
                   return ListTile(
                     title: Text(bondedDevices[index].name ?? 'Unknown device'),
                     subtitle: Text(bondedDevices[index].address),
                     trailing: const Text('Bonded'),
                     onTap: () async {
-                      await connectToDevice(bondedDevices[index]);
+                      await BluetoothService().connectToDevice(bondedDevices[index]);
                     },
                   );
                 } else {
                   int deviceIndex = index - bondedDevices.length;
+                  if (BluetoothService().connectedDevice != null &&
+                      BluetoothService().connectedDevice!.address == _devices[deviceIndex].address) {
+                    tileColor = Colors.green;
+                  }
                   return ListTile(
+                    tileColor: tileColor,
                     title: Text(_devices[deviceIndex].name ?? 'Unknown device'),
                     subtitle: Text(_devices[deviceIndex].address),
                     trailing: const Text('Not bonded'),
@@ -96,7 +102,7 @@ class _BluetoothScanPageState extends State<BluetoothScanPage> {
                                     await FlutterBluetoothSerial.instance
                                         .bondDeviceAtAddress(_devices[deviceIndex].address);
                                     print('Bonded device');
-                                    await connectToDevice(_devices[deviceIndex]);
+                                    await BluetoothService().connectToDevice(_devices[deviceIndex]);
                                   },
                                 ),
                               ],
@@ -124,21 +130,5 @@ class _BluetoothScanPageState extends State<BluetoothScanPage> {
         },
       ),
     );
-  }
-
-  Future<void> connectToDevice(BluetoothDevice device) async {
-    print('Connecting to the device');
-    await BluetoothConnection.toAddress(device.address).then((connection) {
-      print('Connected to the device');
-      setState(() {
-        _connectedDevices.add(device);
-      });
-      connection.input?.listen((Uint8List data) {
-        print('Received: ${ascii.decode(data)}');
-      });
-    }).catchError((error) {
-      print('Cannot connect, exception occurred');
-      print(error);
-    });
   }
 }
