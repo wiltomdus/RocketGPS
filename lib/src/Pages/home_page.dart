@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gps_link/src/Pages/bluetooth_scan_page.dart';
 import 'package:gps_link/src/Pages/geolocation_page.dart';
-import 'package:gps_link/src/Pages/terminal_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,11 +16,7 @@ class _HomePageState extends State<HomePage> {
   Widget _getCurrentPage() {
     switch (_currentIndex) {
       case 0:
-        return const BluetoothScanPage();
-      case 1:
         return const GeolocationPage();
-      case 2:
-        return const TerminalPage();
       default:
         return const GeolocationPage();
     }
@@ -32,7 +26,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('GPS Link'),
+        title: const Text('GPS Link'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -43,25 +37,6 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
       body: _getCurrentPage(), // Dynamically get the current page
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.shifting,
-        onTap: onTabTapped,
-        currentIndex: _currentIndex,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.satellite),
-            label: 'Scan',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map),
-            label: 'Map',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.terminal),
-            label: 'Terminal',
-          ),
-        ],
-      ),
     );
   }
 

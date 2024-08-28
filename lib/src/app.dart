@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:gps_link/src/Pages/bluetooth_scan_page.dart';
 import 'package:gps_link/src/Pages/geolocation_page.dart';
 import 'package:gps_link/src/Pages/home_page.dart';
-import 'package:gps_link/src/Pages/terminal_page.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 
 import 'settings/settings_controller.dart';
@@ -167,10 +165,6 @@ class MyApp extends StatelessWidget {
                 switch (routeSettings.name) {
                   case SettingsView.routeName:
                     return SettingsView(controller: settingsController);
-                  case BluetoothScanPage.routeName:
-                    return const BluetoothScanPage();
-                  case TerminalPage.routeName:
-                    return const TerminalPage();
                   case HomePage.routeName:
                     return const HomePage();
                   case GeolocationPage.routeName:
