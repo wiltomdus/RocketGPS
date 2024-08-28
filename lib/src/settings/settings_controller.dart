@@ -1,63 +1,42 @@
 import 'package:flutter/material.dart';
-
 import 'settings_service.dart';
 
-/// A class that many Widgets can interact with to read user settings, update
-/// user settings, or listen to user settings changes.
-///
-/// Controllers glue Data Services to Flutter Widgets. The SettingsController
-/// uses the SettingsService to store and retrieve user settings.
 class SettingsController with ChangeNotifier {
-  SettingsController(this._settingsService);
-
-  // Make SettingsService a private variable so it is not used directly.
   final SettingsService _settingsService;
 
-  // Make ThemeMode a private variable so it is not updated directly without
-  // also persisting the changes with the SettingsService.
-  late ThemeMode _themeMode;
-  // late String _googleMapsApiKey;
+  ThemeMode _themeMode = ThemeMode.system;
+  String? _selectedBluetoothDevice;
 
-  // Allow Widgets to read the user's preferred ThemeMode.
+  SettingsController(this._settingsService);
+
   ThemeMode get themeMode => _themeMode;
-  // String get googleMapsApiKey => _googleMapsApiKey;
+  String? get selectedBluetoothDevice => _selectedBluetoothDevice;
 
-  /// Load the user's settings from the SettingsService. It may load from a
-  /// local database or the internet. The controller only knows it can load the
-  /// settings from the service.
   Future<void> loadSettings() async {
-    _themeMode = await _settingsService.themeMode();
-    // _googleMapsApiKey = await _settingsService.googleMapsApiKey();
-
-    // Important! Inform listeners a change has occurred.
+    _themeMode = await _settingsService.getThemeMode();
+    _selectedBluetoothDevice = await _settingsService.getSelectedBluetoothDevice();
     notifyListeners();
   }
 
-  /// Update and persist the ThemeMode based on the user's selection.
-  Future<void> updateThemeMode(ThemeMode? newThemeMode) async {
-    if (newThemeMode == null) return;
-
-    // Do not perform any work if new and old ThemeMode are identical
-    if (newThemeMode == _themeMode) return;
-
-    // Otherwise, store the new ThemeMode in memory
-    _themeMode = newThemeMode;
-
-    // Important! Inform listeners a change has occurred.
-    notifyListeners();
-
-    // Persist the changes to a local database or the internet using the
-    // SettingService.
-    await _settingsService.updateThemeMode(newThemeMode);
+  void updateThemeMode(ThemeMode? newMode) async {
+    if (newMode != null) {
+      _themeMode = newMode;
+      await _settingsService.updateThemeMode(newMode);
+      notifyListeners();
+    }
   }
 
-  // Future<void> updateGoogleMapsApiKey(String newGoogleMapsApiKey) async {
-  //   if (newGoogleMapsApiKey == _googleMapsApiKey) return;
+  Future<List<String>> getPairedBluetoothDevices() async {
+    return _settingsService.getPairedBluetoothDevices();
+  }
 
-  //   _googleMapsApiKey = newGoogleMapsApiKey;
+  void updateSelectedBluetoothDevice(String device) async {
+    _selectedBluetoothDevice = device;
+    await _settingsService.updateSelectedBluetoothDevice(device);
+    notifyListeners();
+  }
 
-  //   notifyListeners();
-
-  //   await _settingsService.updateGoogleMapsApiKey(newGoogleMapsApiKey);
-  // }
+  void openBluetoothSettings() {
+    // Android intent to open Bluetooth settings
+  }
 }

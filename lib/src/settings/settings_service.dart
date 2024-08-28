@@ -1,23 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bluetooth_serial_ble/flutter_bluetooth_serial_ble.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// A service that stores and retrieves user settings.
-///
-/// By default, this class does not persist user settings. If you'd like to
-/// persist the user settings locally, use the shared_preferences package. If
-/// you'd like to store settings on a web server, use the http package.
 class SettingsService {
-  /// Loads the User's preferred ThemeMode from local or remote storage.
-  Future<ThemeMode> themeMode() async => ThemeMode.system;
-  // Future<String> googleMapsApiKey() async => '';
+  static const String _keyThemeMode = 'themeMode';
+  static const String _keySelectedBluetoothDevice = 'selectedBluetoothDevice';
 
-  /// Persists the user's preferred ThemeMode to local or remote storage.
-  Future<void> updateThemeMode(ThemeMode theme) async {
-    // Use the shared_preferences package to persist settings locally or the
-    // http package to persist settings over the network.
+  final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
+
+  Future<List<String>> getPairedBluetoothDevices() async {
+    try {
+      List<BluetoothDevice> devices = await FlutterBluetoothSerial.instance.getBondedDevices();
+      return devices.map((device) => device.name ?? device.address).toList();
+    } catch (e) {
+      return [];
+    }
   }
 
-  // Future<void> updateGoogleMapsApiKey(String googleMapsApiKey) async {
-  //   // Use the shared_preferences package to persist settings locally or the
-  //   // http package to persist settings over the network.
-  // }
+  Future<void> updateSelectedBluetoothDevice(String device) async {
+    final SharedPreferences prefs = await _prefs;
+    await prefs.setString(_keySelectedBluetoothDevice, device);
+  }
+
+  Future<String?> getSelectedBluetoothDevice() async {
+    final SharedPreferences prefs = await _prefs;
+    return prefs.getString(_keySelectedBluetoothDevice);
+  }
+
+  Future<void> updateThemeMode(ThemeMode themeMode) async {
+    final SharedPreferences prefs = await _prefs;
+    await prefs.setInt(_keyThemeMode, themeMode.index);
+  }
+
+  Future<ThemeMode> getThemeMode() async {
+    final SharedPreferences prefs = await _prefs;
+    int? themeIndex = prefs.getInt(_keyThemeMode);
+    if (themeIndex != null) {
+      return ThemeMode.values[themeIndex];
+    }
+    return ThemeMode.system; // Default to system theme if not set
+  }
 }
