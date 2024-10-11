@@ -48,33 +48,6 @@ class SettingsView extends StatelessWidget {
             leading: Icon(Icons.bluetooth),
             title: Text('Bluetooth Settings'),
           ),
-          // Paired Devices Dropdown
-          FutureBuilder<List<String>>(
-            future: controller.getPairedBluetoothDevices(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              } else if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Text('No paired Bluetooth devices found.');
-              } else {
-                return DropdownButton<String>(
-                  value: controller.selectedBluetoothDevice,
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      controller.updateSelectedBluetoothDevice(newValue);
-                    }
-                  },
-                  items: snapshot.data!.map<DropdownMenuItem<String>>((String device) {
-                    return DropdownMenuItem<String>(
-                      value: device,
-                      child: Text(device),
-                    );
-                  }).toList(),
-                  hint: const Text('Select a paired device'),
-                );
-              }
-            },
-          ),
           const SizedBox(height: 10),
           // Bluetooth Settings Button
           ElevatedButton.icon(

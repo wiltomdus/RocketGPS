@@ -16,9 +16,9 @@ class _HomePageState extends State<HomePage> {
   Widget _getCurrentPage() {
     switch (_currentIndex) {
       case 0:
-        return const GeolocationPage();
+        return GeolocationPage();
       default:
-        return const GeolocationPage();
+        return GeolocationPage();
     }
   }
 

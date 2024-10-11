@@ -26,10 +26,6 @@ class SettingsController with ChangeNotifier {
     }
   }
 
-  Future<List<String>> getPairedBluetoothDevices() async {
-    return _settingsService.getPairedBluetoothDevices();
-  }
-
   void updateSelectedBluetoothDevice(String device) async {
     _selectedBluetoothDevice = device;
     await _settingsService.updateSelectedBluetoothDevice(device);

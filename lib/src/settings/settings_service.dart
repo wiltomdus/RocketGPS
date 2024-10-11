@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bluetooth_serial_ble/flutter_bluetooth_serial_ble.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsService {
@@ -7,15 +6,6 @@ class SettingsService {
   static const String _keySelectedBluetoothDevice = 'selectedBluetoothDevice';
 
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
-
-  Future<List<String>> getPairedBluetoothDevices() async {
-    try {
-      List<BluetoothDevice> devices = await FlutterBluetoothSerial.instance.getBondedDevices();
-      return devices.map((device) => device.name ?? device.address).toList();
-    } catch (e) {
-      return [];
-    }
-  }
 
   Future<void> updateSelectedBluetoothDevice(String device) async {
     final SharedPreferences prefs = await _prefs;
