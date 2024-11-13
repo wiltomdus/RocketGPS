@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:gps_link/src/Pages/geolocation_page.dart';
+import 'package:gps_link/src/settings/settings_controller.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final SettingsController settingsController;
+
+  const HomePage({super.key, required this.settingsController});
 
   static const routeName = '/home';
 
@@ -16,9 +19,11 @@ class _HomePageState extends State<HomePage> {
   Widget _getCurrentPage() {
     switch (_currentIndex) {
       case 0:
-        return GeolocationPage();
+        return GeolocationPage(
+          settingsController: widget.settingsController,
+        );
       default:
-        return GeolocationPage();
+        return GeolocationPage(settingsController: widget.settingsController);
     }
   }
 

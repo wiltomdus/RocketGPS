@@ -1,12 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:gps_link/widgets/mock_location_widget.dart';
 import 'settings_controller.dart';
+import 'package:bluetooth_classic/bluetooth_classic.dart';
 
-class SettingsView extends StatelessWidget {
+class SettingsView extends StatefulWidget {
   final SettingsController controller;
   static const routeName = '/settings';
 
   const SettingsView({super.key, required this.controller});
+
+  @override
+  State<SettingsView> createState() => _SettingsViewState();
+}
+
+class _SettingsViewState extends State<SettingsView> {
+  bool _isConnected = false; // Track the connection state
+
+  final _bluetoothClassicPlugin = BluetoothClassic();
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<bool> _requestPermissions() async {
+    // Request necessary permissions
+    return true;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,8 +43,8 @@ class SettingsView extends StatelessWidget {
             title: const Text('Theme'),
             subtitle: const Text('Select app theme'),
             trailing: DropdownButton<ThemeMode>(
-              value: controller.themeMode,
-              onChanged: controller.updateThemeMode,
+              value: widget.controller.themeMode,
+              onChanged: widget.controller.updateThemeMode,
               items: const [
                 DropdownMenuItem(
                   value: ThemeMode.system,
@@ -48,12 +68,11 @@ class SettingsView extends StatelessWidget {
             leading: Icon(Icons.bluetooth),
             title: Text('Bluetooth Settings'),
           ),
-          const SizedBox(height: 10),
-          // Bluetooth Settings Button
-          ElevatedButton.icon(
-            icon: const Icon(Icons.settings_bluetooth),
-            label: const Text('Open Bluetooth Settings'),
-            onPressed: controller.openBluetoothSettings,
+          TextButton(
+            onPressed: () async {
+              await _bluetoothClassicPlugin.initPermissions();
+            },
+            child: const Text("Check Permissions"),
           ),
           const Divider(),
 
@@ -72,19 +91,19 @@ class SettingsView extends StatelessWidget {
   }
 
   void _showMockLocationInstructions(BuildContext context) {
+    // Show mock location instructions
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          content: const MockLocationInstructions(),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
+      builder: (context) => AlertDialog(
+        title: const Text('Mock Location Setup Help'),
+        content: const Text('Instructions on how to set up mock location.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 }

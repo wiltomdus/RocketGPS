@@ -166,11 +166,11 @@ class MyApp extends StatelessWidget {
                   case SettingsView.routeName:
                     return SettingsView(controller: settingsController);
                   case HomePage.routeName:
-                    return const HomePage();
+                    return HomePage(settingsController: settingsController);
                   case GeolocationPage.routeName:
-                    return const GeolocationPage();
+                    return GeolocationPage(settingsController: settingsController);
                   default:
-                    return const HomePage();
+                    return HomePage(settingsController: settingsController);
                 }
               },
             );
