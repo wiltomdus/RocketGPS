@@ -13,6 +13,8 @@ import 'package:vector_math/vector_math.dart' as vmath;
 import 'package:provider/provider.dart';
 import 'package:bluetooth_classic/bluetooth_classic.dart';
 
+enum DeviceState { disconnected, connecting, connected, error }
+
 class GeolocationPage extends StatefulWidget {
   final SettingsController settingsController;
 
@@ -81,7 +83,6 @@ class _GeolocationPageState extends State<GeolocationPage> {
     // Look for a GPGGA sentence which contains the location information
     if (nmeaString.startsWith("\$GPGGA")) {
       List<String> nmeaParts = nmeaString.split(',');
-      print("NMEA Parts: $nmeaParts");
 
       if (nmeaParts.length >= 9) {
         // Extract latitude and longitude from the sentence
@@ -97,7 +98,6 @@ class _GeolocationPageState extends State<GeolocationPage> {
           _longitude = _parseCoordinate(longitudeStr, longitudeHemisphere);
           _altitude = double.tryParse(altitudeStr);
         }
-        print("Latitude: $_latitude, Longitude: $_longitude, Altitude: $_altitude");
       }
     }
 
@@ -125,35 +125,14 @@ class _GeolocationPageState extends State<GeolocationPage> {
       Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       setState(() {
         _phonePosition = position;
-        _updateBearingAndDistance();
       });
     } catch (e) {
       print("Error refreshing phone GPS: $e");
     }
   }
 
-  void _updateBearingAndDistance() {
-    if (_phonePosition != null && _bluetoothPosition != null) {
-      final lat1 = vmath.radians(_phonePosition!.latitude);
-      final lon1 = vmath.radians(_phonePosition!.longitude);
-      final lat2 = vmath.radians(_bluetoothPosition!.latitude);
-      final lon2 = vmath.radians(_bluetoothPosition!.longitude);
-
-      final dLon = lon2 - lon1;
-      final y = sin(dLon) * cos(lat2);
-      final x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
-      final bearing = atan2(y, x);
-      setState(() {
-        _bearing = vmath.degrees(bearing);
-        _distance = Geolocator.distanceBetween(
-          _phonePosition!.latitude,
-          _phonePosition!.longitude,
-          _bluetoothPosition!.latitude,
-          _bluetoothPosition!.longitude,
-        );
-      });
-    }
-  }
+  bool _isValidLatitude(double lat) => lat >= -90 && lat <= 90;
+  bool _isValidLongitude(double lon) => lon >= -180 && lon <= 180;
 
   Future<void> _toggleConnection() async {
     if (_deviceStatus == Device.connected) {
@@ -169,25 +148,75 @@ class _GeolocationPageState extends State<GeolocationPage> {
       });
 
       if (_devices.isNotEmpty) {
-        await _bluetoothClassicPlugin.connect(_devices.first.address, "00001101-0000-1000-8000-00805f9b34fb");
+        try {
+          await _bluetoothClassicPlugin.connect(_devices.first.address, "00001101-0000-1000-8000-00805f9b34fb");
+        } catch (e) {
+          setState(() {
+            _deviceStatus = _deviceStateToInt(DeviceState.error);
+          });
+          print("Connection failed: $e");
+        }
       }
     }
   }
 
-  Color _getStatusColor() {
-    switch (_deviceStatus) {
-      case Device.connected:
-        return Colors.green;
-      case Device.connecting:
-        return Colors.orange;
-      case Device.disconnected:
+  // Add these conversion methods
+  DeviceState _intToDeviceState(int status) {
+    switch (status) {
+      case 0:
+        return DeviceState.disconnected;
+      case 1:
+        return DeviceState.connecting;
+      case 2:
+        return DeviceState.connected;
+      case 3:
+        return DeviceState.error;
       default:
-        return Colors.red;
+        return DeviceState.disconnected;
     }
   }
 
+  int _deviceStateToInt(DeviceState state) {
+    switch (state) {
+      case DeviceState.disconnected:
+        return 0;
+      case DeviceState.connecting:
+        return 1;
+      case DeviceState.connected:
+        return 2;
+      case DeviceState.error:
+        return 3;
+    }
+  }
+
+  // Update the color method
+  Color _getStatusColor() {
+    final state = _intToDeviceState(_deviceStatus);
+    switch (state) {
+      case DeviceState.connected:
+        return Colors.green;
+      case DeviceState.connecting:
+        return Colors.orange;
+      case DeviceState.error:
+        return Colors.red;
+      case DeviceState.disconnected:
+        return Colors.grey;
+    }
+  }
+
+  // Update the text method
   String _getStatusText() {
-    return _deviceStatus == Device.connected ? 'Disconnect' : 'Connect';
+    final state = _intToDeviceState(_deviceStatus);
+    switch (state) {
+      case DeviceState.connected:
+        return 'Disconnect';
+      case DeviceState.connecting:
+        return 'Connecting...';
+      case DeviceState.error:
+        return 'Retry Connection';
+      case DeviceState.disconnected:
+        return 'Connect';
+    }
   }
 
   // Add this function to calculate bearing
@@ -206,6 +235,40 @@ class _GeolocationPageState extends State<GeolocationPage> {
     return (bearing * 180 / pi + 360) % 360;
   }
 
+  double _calculateDistance() {
+    if (_phonePosition == null || _latitude == null || _longitude == null) {
+      return 0.0;
+    }
+
+    const R = 6371e3; // Earth's radius in meters
+    final lat1 = _phonePosition!.latitude * pi / 180;
+    final lat2 = _latitude! * pi / 180;
+    final deltaLat = (_latitude! - _phonePosition!.latitude) * pi / 180;
+    final deltaLon = (_longitude! - _phonePosition!.longitude) * pi / 180;
+
+    final a = sin(deltaLat / 2) * sin(deltaLat / 2) + cos(lat1) * cos(lat2) * sin(deltaLon / 2) * sin(deltaLon / 2);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+
+    return R * c;
+  }
+
+  double _calculateBearingValue() {
+    if (_phonePosition == null || _latitude == null || _longitude == null) {
+      return 0.0;
+    }
+
+    final lat1 = _phonePosition!.latitude * pi / 180;
+    final lat2 = _latitude! * pi / 180;
+    final lon1 = _phonePosition!.longitude * pi / 180;
+    final lon2 = _longitude! * pi / 180;
+
+    final y = sin(lon2 - lon1) * cos(lat2);
+    final x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(lon2 - lon1);
+    final bearing = atan2(y, x);
+
+    return (bearing * 180 / pi + 360) % 360;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -215,45 +278,104 @@ class _GeolocationPageState extends State<GeolocationPage> {
           child: Column(
             children: [
               // Bluetooth GPS Data Section
-              _latitude != null && _longitude != null && _altitude != null
-                  ? GPSDataCard(
-                      title: "Bluetooth Device GPS Data",
-                      items: [
-                        GPSDataItem(
-                          icon: Icons.location_on,
-                          label: "Latitude",
-                          value: "${_latitude!.toStringAsFixed(6)}°",
-                        ),
-                        GPSDataItem(
-                          icon: Icons.location_on,
-                          label: "Longitude",
-                          value: "${_longitude!.toStringAsFixed(6)}°",
-                        ),
-                        GPSDataItem(
-                          icon: Icons.height,
-                          label: "Altitude",
-                          value: "${_altitude!.toStringAsFixed(2)} meters",
-                        ),
-                      ],
-                    )
-                  : const Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Text(
-                          "Waiting for Bluetooth GPS data...",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _latitude != null && _longitude != null && _altitude != null
+                          ? GPSDataCard(
+                              title: "Rocket GPS",
+                              items: [
+                                GPSDataItem(
+                                  icon: Icons.location_on,
+                                  label: "Latitude",
+                                  value: "${_latitude!.toStringAsFixed(6)}°",
+                                ),
+                                GPSDataItem(
+                                  icon: Icons.location_on,
+                                  label: "Longitude",
+                                  value: "${_longitude!.toStringAsFixed(6)}°",
+                                ),
+                                GPSDataItem(
+                                  icon: Icons.height,
+                                  label: "Altitude",
+                                  value: "${(_altitude! * 3.28084).toStringAsFixed(2)} ft",
+                                ),
+                              ],
+                            )
+                          : const Card(
+                              elevation: 4,
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Text(
+                                  "Waiting for rocket GPS data...",
+                                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                                ),
+                              ),
+                            ),
                     ),
+                    const SizedBox(width: 2),
+                    Expanded(
+                      child: _phonePosition != null
+                          ? GPSDataCard(
+                              title: "Phone GPS",
+                              items: [
+                                GPSDataItem(
+                                  icon: Icons.location_on,
+                                  label: "Latitude",
+                                  value: "${_phonePosition!.latitude.toStringAsFixed(6)}°",
+                                ),
+                                GPSDataItem(
+                                  icon: Icons.location_on,
+                                  label: "Longitude",
+                                  value: "${_phonePosition!.longitude.toStringAsFixed(6)}°",
+                                ),
+                                GPSDataItem(
+                                  icon: Icons.height,
+                                  label: "Altitude",
+                                  value: "${(_phonePosition!.altitude * 3.28084).toStringAsFixed(2)} ft",
+                                ),
+                              ],
+                            )
+                          : const Card(
+                              elevation: 4,
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Text(
+                                  "Waiting for phone GPS data...",
+                                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
+              GPSDataCard(title: 'Recovery', items: [
+                GPSDataItem(
+                  icon: Icons.speed,
+                  label: "Vertical Speed",
+                  value: "${_data.isNotEmpty ? (_data.last * 3.28084).toStringAsFixed(2) : 'N/A'} ft/s",
+                ),
+                GPSDataItem(
+                  icon: Icons.straighten,
+                  label: "Distance to Rocket",
+                  value:
+                      "${_phonePosition != null && _latitude != null && _longitude != null ? _calculateDistance().toStringAsFixed(2) : 'N/A'} m",
+                ),
+                GPSDataItem(
+                  icon: Icons.navigation,
+                  label: "Bearing to Rocket",
+                  value:
+                      "${_phonePosition != null && _latitude != null && _longitude != null ? _calculateBearingValue().toStringAsFixed(2) : 'N/A'}°",
+                ),
+              ]),
 
-              // Add this widget between the GPS data sections
-              Container(
+              SizedBox(
                 height: 100,
                 width: 100,
                 child: _phonePosition != null && _latitude != null && _longitude != null
@@ -269,84 +391,72 @@ class _GeolocationPageState extends State<GeolocationPage> {
               ),
 
               const SizedBox(height: 20),
-
-              // Phone GPS Data Section
-              _phonePosition != null
-                  ? GPSDataCard(
-                      title: "Phone GPS Data",
-                      items: [
-                        GPSDataItem(
-                          icon: Icons.location_on,
-                          label: "Latitude",
-                          value: "${_phonePosition!.latitude.toStringAsFixed(6)}°",
-                        ),
-                        GPSDataItem(
-                          icon: Icons.location_on,
-                          label: "Longitude",
-                          value: "${_phonePosition!.longitude.toStringAsFixed(6)}°",
-                        ),
-                        GPSDataItem(
-                          icon: Icons.speed,
-                          label: "Speed",
-                          value: "${(_phonePosition!.speed * 3.6).toStringAsFixed(1)} km/h",
-                        ),
-                        GPSDataItem(
-                          icon: Icons.height,
-                          label: "Altitude",
-                          value: "${_phonePosition!.altitude.toStringAsFixed(1)} meters",
-                        ),
-                      ],
-                    )
-                  : const Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Text(
-                          "Waiting for phone GPS data...",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ),
             ],
           ),
         ),
       ),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(8.0),
-        margin: const EdgeInsets.only(bottom: 16.0),
+        padding: const EdgeInsets.all(12.0),
+        margin: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
           color: _getStatusColor(),
           borderRadius: BorderRadius.circular(8.0),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Existing status indicator
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(
-                  _deviceStatus == Device.connected ? Icons.bluetooth_connected : Icons.bluetooth_disabled,
-                  color: Colors.white,
+                // Status indicator
+                Row(
+                  children: [
+                    Icon(
+                      _intToDeviceState(_deviceStatus) == DeviceState.connected
+                          ? Icons.bluetooth_connected
+                          : _intToDeviceState(_deviceStatus) == DeviceState.error
+                              ? Icons.error_outline
+                              : Icons.bluetooth_disabled,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 8.0),
+                    Text(
+                      'Status: ${_intToDeviceState(_deviceStatus).toString().split('.').last}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8.0),
-                Text(
-                  'Bluetooth Status: ${_deviceStatus == Device.connected ? "Connected" : "Disconnected"}',
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                // Connection button
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: _getStatusColor(),
+                  ),
+                  icon: Icon(
+                    _intToDeviceState(_deviceStatus) == DeviceState.connected
+                        ? Icons.bluetooth_disabled
+                        : Icons.bluetooth,
+                  ),
+                  label: Text(_getStatusText()),
+                  onPressed: _scanning ? null : _toggleConnection,
                 ),
               ],
             ),
-
-            // New connection toggle button
-            ElevatedButton.icon(
-              icon: Icon(
-                _deviceStatus == Device.connected ? Icons.bluetooth_disabled : Icons.bluetooth,
+            // Error message
+            if (_intToDeviceState(_deviceStatus) == DeviceState.error)
+              const Padding(
+                padding: EdgeInsets.only(top: 8.0),
+                child: Text(
+                  'Connection failed. Please check device and try again.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
               ),
-              label: Text(_getStatusText()),
-              onPressed: _scanning ? null : _toggleConnection,
-            ),
           ],
         ),
       ),

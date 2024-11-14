@@ -25,7 +25,7 @@ class GPSDataCard extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.blue,
+                color: Colors.purple,
               ),
             ),
             const SizedBox(height: 16),
@@ -33,7 +33,7 @@ class GPSDataCard extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Row(
                     children: [
-                      Icon(item.icon, color: Colors.blue[700], size: 24),
+                      Icon(item.icon, color: Colors.purple[700], size: 24),
                       const SizedBox(width: 12),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
