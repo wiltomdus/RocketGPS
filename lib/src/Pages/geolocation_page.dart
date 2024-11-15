@@ -12,6 +12,8 @@ import 'package:gps_link/widgets/gps_data_card.dart';
 import 'package:vector_math/vector_math.dart' as vmath;
 import 'package:provider/provider.dart';
 import 'package:bluetooth_classic/bluetooth_classic.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:intl/intl.dart';
 
 enum DeviceState { disconnected, connecting, connected, error }
 
@@ -46,12 +48,15 @@ class _GeolocationPageState extends State<GeolocationPage> {
   double? _longitude;
   double? _altitude;
 
+  final List<Map<String, dynamic>> _positionHistory = [];
+  Timer? _historyTimer;
+
   @override
   void initState() {
     super.initState();
 
-    // Start the timer to refresh phone GPS data every 10ms
-    _gpsTimer = Timer.periodic(const Duration(milliseconds: 10), _refreshPhoneGPS);
+    // Start the timer to refresh phone GPS data every 1s
+    _gpsTimer = Timer.periodic(const Duration(seconds: 1), _refreshPhoneGPS);
 
     // Listen for Bluetooth status changes
     _bluetoothClassicPlugin.onDeviceStatusChanged().listen((event) {
@@ -67,12 +72,15 @@ class _GeolocationPageState extends State<GeolocationPage> {
         _parseNMEAData(event);
       });
     });
+
+    _historyTimer = Timer.periodic(const Duration(seconds: 2), _recordPosition);
   }
 
   @override
   void dispose() {
     // Cancel the timer when the page is disposed
     _gpsTimer?.cancel();
+    _historyTimer?.cancel();
     super.dispose();
   }
 
@@ -269,6 +277,114 @@ class _GeolocationPageState extends State<GeolocationPage> {
     return (bearing * 180 / pi + 360) % 360;
   }
 
+  Future<void> _openMapView() async {
+    if (_phonePosition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Waiting for phone GPS position...')),
+      );
+      return;
+    }
+
+    if (_latitude == null || _longitude == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Waiting for rocket GPS position...')),
+      );
+      return;
+    }
+
+    final url = Uri.parse('https://www.google.com/maps/dir/?api=1'
+        '&origin=${_phonePosition!.latitude},${_phonePosition!.longitude}'
+        '&destination=${_latitude},${_longitude}'
+        '&travelmode=walking'
+        '&markers=color:blue|label:P|${_phonePosition!.latitude},${_phonePosition!.longitude}'
+        '&markers=color:red|label:R|${_latitude},${_longitude}');
+
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open map')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error opening map: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error opening map')),
+      );
+    }
+  }
+
+  void _recordPosition(Timer timer) {
+    if (_latitude != null && _longitude != null) {
+      setState(() {
+        _positionHistory.insert(0, {
+          'latitude': _latitude,
+          'longitude': _longitude,
+          'timestamp': DateTime.now(),
+        });
+      });
+    }
+  }
+
+  void _showPositionHistory() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          width: double.maxFinite,
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Position History',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.6,
+                ),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _positionHistory.length,
+                  itemBuilder: (context, index) {
+                    final position = _positionHistory[index];
+                    final timestamp = position['timestamp'] as DateTime;
+                    return ListTile(
+                      dense: true,
+                      title: Text(
+                        'Lat: ${position['latitude']?.toStringAsFixed(6)}°, '
+                        'Lon: ${position['longitude']?.toStringAsFixed(6)}°',
+                      ),
+                      subtitle: Text(
+                        DateFormat('yyyy-MM-dd HH:mm:ss').format(timestamp),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -373,6 +489,12 @@ class _GeolocationPageState extends State<GeolocationPage> {
                   value:
                       "${_phonePosition != null && _latitude != null && _longitude != null ? _calculateBearingValue().toStringAsFixed(2) : 'N/A'}°",
                 ),
+                GPSDataItem(
+                  icon: Icons.gps_fixed,
+                  label: "Last Positions",
+                  value: "${_positionHistory.length} recorded",
+                  onTap: _showPositionHistory,
+                ),
               ]),
 
               SizedBox(
@@ -395,6 +517,27 @@ class _GeolocationPageState extends State<GeolocationPage> {
           ),
         ),
       ),
+      persistentFooterButtons: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _openMapView,
+              icon: const Icon(Icons.map),
+              label: const Text('View Map'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(12.0),
         margin: const EdgeInsets.all(16.0),

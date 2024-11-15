@@ -31,30 +31,33 @@ class GPSDataCard extends StatelessWidget {
             const SizedBox(height: 16),
             ...items.map((item) => Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    children: [
-                      Icon(item.icon, color: Colors.purple[700], size: 24),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.label,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
+                  child: GestureDetector(
+                    onTap: item.onTap,
+                    child: Row(
+                      children: [
+                        Icon(item.icon, color: Colors.purple[700], size: 24),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.label,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
                             ),
-                          ),
-                          Text(
-                            item.value,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
+                            Text(
+                              item.value,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 )),
           ],
