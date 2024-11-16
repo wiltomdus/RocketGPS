@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:gps_link/widgets/mock_location_widget.dart';
 import 'settings_controller.dart';
 import 'package:bluetooth_classic/bluetooth_classic.dart';
 
@@ -73,17 +72,6 @@ class _SettingsViewState extends State<SettingsView> {
               await _bluetoothClassicPlugin.initPermissions();
             },
             child: const Text("Check Permissions"),
-          ),
-          const Divider(),
-
-          // Help Button for Mock Location Instructions
-          ListTile(
-            leading: const Icon(Icons.help_outline),
-            title: const Text('Mock Location Setup Help'),
-            trailing: ElevatedButton(
-              child: const Text('Help'),
-              onPressed: () => _showMockLocationInstructions(context),
-            ),
           ),
         ],
       ),
