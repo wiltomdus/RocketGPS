@@ -1,18 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:gps_link/src/models/gps_data_item.dart';
 
 class GPSDataCard extends StatelessWidget {
   final String title;
   final Position? position;
   final VoidCallback? onHistoryTap;
+  final bool showDMS;
+  final VoidCallback onFormatToggle;
 
   const GPSDataCard({
     super.key,
     required this.title,
     this.position,
     this.onHistoryTap,
+    required this.showDMS,
+    required this.onFormatToggle,
   });
+
+  String _formatCoordinate(double coordinate, bool isLatitude) {
+    if (showDMS) {
+      var direction = isLatitude ? (coordinate >= 0 ? 'N' : 'S') : (coordinate >= 0 ? 'E' : 'W');
+      coordinate = coordinate.abs();
+      int degrees = coordinate.floor();
+      double minutesDecimal = (coordinate - degrees) * 60;
+      int minutes = minutesDecimal.floor();
+      double seconds = (minutesDecimal - minutes) * 60;
+      return '$degrees° $minutes\' ${seconds.toStringAsFixed(2)}" $direction';
+    } else {
+      return "${coordinate.toStringAsFixed(6)}°";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,18 +40,36 @@ class GPSDataCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.purple,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.purple,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 2), // Add spacing between title and button
+                SizedBox(
+                  width: 48, // Fixed width for consistency
+                  child: IconButton(
+                    icon: Icon(showDMS ? Icons.format_list_numbered : Icons.rotate_right),
+                    onPressed: onFormatToggle,
+                    tooltip: showDMS ? 'Show Decimal' : 'Show DMS',
+                    padding: EdgeInsets.zero, // Reduce padding
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             if (position != null) ...[
-              _buildGPSItem(Icons.location_on, "Latitude", "${position!.latitude.toStringAsFixed(6)}°"),
-              _buildGPSItem(Icons.location_on, "Longitude", "${position!.longitude.toStringAsFixed(6)}°"),
+              _buildGPSItem(Icons.location_on, "Latitude", _formatCoordinate(position!.latitude, true)),
+              _buildGPSItem(Icons.location_on, "Longitude", _formatCoordinate(position!.longitude, false)),
               _buildGPSItem(Icons.height, "Altitude", "${position!.altitude.toStringAsFixed(1)} m"),
               if (onHistoryTap != null) _buildGPSItem(Icons.history, "History", "View", onTap: onHistoryTap),
             ] else
@@ -58,7 +93,7 @@ class GPSDataCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-                Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+                Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               ],
             ),
           ],

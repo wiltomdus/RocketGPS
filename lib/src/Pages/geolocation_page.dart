@@ -2,16 +2,16 @@ import 'dart:async';
 import 'package:bluetooth_classic/bluetooth_classic.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:gps_link/src/models/device_state.dart';
 import 'package:gps_link/src/models/gps_data_item.dart';
+import 'package:gps_link/src/services/bluetooth_service.dart';
+import 'package:gps_link/src/services/gps_service.dart';
 import 'package:gps_link/src/utils/kml_exporter.dart';
 import 'package:gps_link/widgets/gps_data_card.dart';
 import 'package:gps_link/widgets/recovery_card.dart';
 import 'package:gps_link/widgets/status_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
-import '../models/device_state.dart';
-import '../services/bluetooth_service.dart';
-import '../services/gps_service.dart';
 
 class GeolocationPage extends StatefulWidget {
   const GeolocationPage({super.key});
@@ -32,6 +32,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
 
   double? _longitude;
   double? _altitude;
+  bool _showDMS = false;
   DeviceState _deviceState = DeviceState.disconnected;
   bool _isScanning = false;
   Timer? _gpsTimer;
@@ -224,7 +225,6 @@ class _GeolocationPageState extends State<GeolocationPage> {
     _gpsTimer?.cancel();
     _historyTimer?.cancel();
     _dataSubscription?.cancel();
-    _historyTimer?.cancel();
     super.dispose();
   }
 
@@ -233,7 +233,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
     return Scaffold(
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(8.0),
           child: Column(
             children: [
               Row(
@@ -241,7 +241,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
                 children: [
                   Expanded(
                     child: GPSDataCard(
-                      title: "Rocket GPS",
+                      title: "Rocket",
                       position: _latitude != null
                           ? Position(
                               latitude: _latitude!,
@@ -257,13 +257,17 @@ class _GeolocationPageState extends State<GeolocationPage> {
                             )
                           : null,
                       onHistoryTap: _showPositionHistory,
+                      showDMS: _showDMS,
+                      onFormatToggle: () => setState(() => _showDMS = !_showDMS),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 4),
                   Expanded(
                     child: GPSDataCard(
-                      title: "Phone GPS",
+                      title: "Phone",
                       position: _phonePosition,
+                      showDMS: _showDMS,
+                      onFormatToggle: () => setState(() => _showDMS = !_showDMS),
                     ),
                   ),
                 ],
@@ -271,6 +275,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
               const SizedBox(height: 16),
               RecoveryCard(
                 title: 'Recovery',
+                bearing: _gpsService.calculateBearing(),
                 items: [
                   GPSDataItem(
                     icon: Icons.speed,
