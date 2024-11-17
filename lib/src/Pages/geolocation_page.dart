@@ -146,7 +146,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
 
     final url = Uri.parse('https://www.google.com/maps/dir/?api=1'
         '&origin=${_phonePosition!.latitude},${_phonePosition!.longitude}'
-        '&destination=${_latitude},${_longitude}'
+        '&destination=$_latitude,$_longitude'
         '&travelmode=walking');
 
     try {

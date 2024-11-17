@@ -13,18 +13,11 @@ class SettingsView extends StatefulWidget {
 }
 
 class _SettingsViewState extends State<SettingsView> {
-  bool _isConnected = false; // Track the connection state
-
   final _bluetoothClassicPlugin = BluetoothClassic();
 
   @override
   void initState() {
     super.initState();
-  }
-
-  Future<bool> _requestPermissions() async {
-    // Request necessary permissions
-    return true;
   }
 
   @override
@@ -72,23 +65,6 @@ class _SettingsViewState extends State<SettingsView> {
               await _bluetoothClassicPlugin.initPermissions();
             },
             child: const Text("Check Permissions"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showMockLocationInstructions(BuildContext context) {
-    // Show mock location instructions
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Mock Location Setup Help'),
-        content: const Text('Instructions on how to set up mock location.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
           ),
         ],
       ),

@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
-import 'package:gps_link/src/models/position_history.dart';
 
 class PositionHistoryDialog extends StatelessWidget {
   final List<Position> positions;
 
   const PositionHistoryDialog({
-    Key? key,
+    super.key,
     required this.positions,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

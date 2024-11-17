@@ -5,7 +5,6 @@ class GPSService {
   Position? _phonePosition;
   double? _rocketLatitude;
   double? _rocketLongitude;
-  double? _rocketAltitude;
   double? _previousAltitude;
   DateTime? _previousTimestamp;
   double _verticalVelocity = 0;
@@ -41,7 +40,6 @@ class GPSService {
   void updateRocketPosition(double lat, double lon, double alt) {
     _rocketLatitude = lat;
     _rocketLongitude = lon;
-    _rocketAltitude = alt;
     _calculateVerticalVelocity(alt);
   }
 

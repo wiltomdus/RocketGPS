@@ -7,11 +7,11 @@ class StatusBar extends StatelessWidget {
   final bool isScanning;
 
   const StatusBar({
-    Key? key,
+    super.key,
     required this.deviceState,
     required this.onConnect,
     this.isScanning = false,
-  }) : super(key: key);
+  });
 
   Color _getStatusColor() {
     switch (deviceState) {

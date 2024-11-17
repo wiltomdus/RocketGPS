@@ -8,11 +8,11 @@ class RecoveryCard extends StatelessWidget {
   final double bearing;
 
   const RecoveryCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.items,
     required this.bearing,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

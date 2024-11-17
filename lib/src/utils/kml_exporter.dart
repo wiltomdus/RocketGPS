@@ -3,8 +3,6 @@ import 'dart:io';
 import 'package:external_path/external_path.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 
 class KMLExporter {
   static Future<String?> exportPositions(List<Position> positions) async {
