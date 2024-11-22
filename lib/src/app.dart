@@ -58,7 +58,7 @@ class MyApp extends StatelessWidget {
     interactionEffects: true,
     defaultRadius: null,
     bottomSheetRadius: 24,
-    useTextTheme: true,
+    useMaterial3Typography: true,
     inputDecoratorBorderType: FlexInputBorderType.outline,
     inputDecoratorIsFilled: true,
     inputDecoratorUnfocusedHasBorder: true,
@@ -69,8 +69,6 @@ class MyApp extends StatelessWidget {
     elevatedButtonElevation: 1,
     thickBorderWidth: 2, // Default is 2.0.
     thinBorderWidth: 1.5, // Default is 1.5.
-
-    bottomNavigationBarBackgroundSchemeColor: SchemeColor.background,
   );
 
   @override
