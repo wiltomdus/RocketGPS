@@ -4,8 +4,14 @@ import 'src/app.dart';
 import 'src/settings/settings_controller.dart';
 import 'src/settings/settings_service.dart';
 
+import 'package:bluetooth_classic/bluetooth_classic.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final bluetoothPlugin = BluetoothClassic();
+  await bluetoothPlugin.initPermissions();
+
   // Set up the SettingsController, which will glue user settings to multiple
   // Flutter Widgets.
   final settingsController = SettingsController(SettingsService());
