@@ -75,7 +75,7 @@ class RecoveryCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
-                    'Rocket Direction',
+                    'Rocket Bearing',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey,

@@ -10,8 +10,8 @@ import 'package:gps_link/src/utils/kml_exporter.dart';
 import 'package:gps_link/widgets/gps_data_card.dart';
 import 'package:gps_link/widgets/recovery_card.dart';
 import 'package:gps_link/widgets/status_bar.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
+import 'package:map_launcher/map_launcher.dart';
 
 class GeolocationPage extends StatefulWidget {
   const GeolocationPage({super.key});
@@ -144,21 +144,38 @@ class _GeolocationPageState extends State<GeolocationPage> {
       return;
     }
 
-    final url = Uri.parse('https://www.google.com/maps/dir/?api=1'
-        '&origin=${_phonePosition!.latitude},${_phonePosition!.longitude}'
-        '&destination=$_latitude,$_longitude'
-        '&travelmode=walking');
-
     try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
+      final availableMaps = await MapLauncher.installedMaps;
+
+      if (availableMaps.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open map')),
+          const SnackBar(content: Text('No map apps installed')),
         );
+        return;
       }
+
+      // If Google Maps is installed, use it directly
+      final googleMaps = availableMaps.firstWhere(
+        (map) => map.mapType == MapType.google,
+        orElse: () => availableMaps.first,
+      );
+
+      await googleMaps.showDirections(
+        origin: Coords(
+          _phonePosition!.latitude,
+          _phonePosition!.longitude,
+        ),
+        destination: Coords(
+          _latitude!,
+          _longitude!,
+        ),
+        directionsMode: DirectionsMode.walking,
+      );
     } catch (e) {
-      debugPrint('Error opening map: $e');
+      debugPrint('Map launch error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error opening map: $e')),
+      );
     }
   }
 
@@ -279,7 +296,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
                 items: [
                   GPSDataItem(
                     icon: Icons.speed,
-                    label: "Vertical Speed",
+                    label: "Vertical Velocity",
                     value: "${_gpsService.verticalVelocity.toStringAsFixed(2)} ft/s",
                   ),
                   GPSDataItem(
@@ -356,12 +373,12 @@ class _GeolocationPageState extends State<GeolocationPage> {
             ],
           ),
         ),
+        StatusBar(
+          deviceState: _deviceState,
+          onConnect: _handleConnection,
+          isScanning: _isScanning,
+        ),
       ],
-      bottomNavigationBar: StatusBar(
-        deviceState: _deviceState,
-        onConnect: _handleConnection,
-        isScanning: _isScanning,
-      ),
     );
   }
 }
