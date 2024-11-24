@@ -1,4 +1,4 @@
-package com.example.gps_link
+package ca.dhenki.rocket_gps
 
 import io.flutter.embedding.android.FlutterActivity
 

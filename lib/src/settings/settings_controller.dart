@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:gps_link/src/settings/settings_service.dart';
+import 'package:rocket_gps/src/settings/settings_service.dart';
 
 class SettingsController with ChangeNotifier {
   final SettingsService _settingsService;

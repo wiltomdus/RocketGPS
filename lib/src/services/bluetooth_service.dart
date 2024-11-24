@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:bluetooth_classic/bluetooth_classic.dart';
 import 'package:bluetooth_classic/models/device.dart';
-import 'package:gps_link/src/models/gps_data.dart';
+import 'package:rocket_gps/src/models/gps_data.dart';
 
 class BluetoothService {
   final BluetoothClassic _bluetoothPlugin;

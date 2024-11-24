@@ -1,5 +1,5 @@
-name: gps_link
-description: "A new Flutter project."
+name: rocket_gps
+description: "A GPS tracking app for bluetooth classic Rocketry GPS devices."
 
 # Prevent accidental publishing to pub.dev.
 publish_to: 'none'
@@ -32,6 +32,7 @@ dev_dependencies:
     sdk: flutter
 
   flutter_lints: ^5.0.0
+  icons_launcher: ^3.0.0
 
 flutter:
   uses-material-design: true

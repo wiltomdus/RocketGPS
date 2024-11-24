@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gps_link/src/models/device_state.dart';
+import 'package:rocket_gps/src/models/device_state.dart';
 import 'package:bluetooth_classic/bluetooth_classic.dart';
 
 class StatusBar extends StatelessWidget {

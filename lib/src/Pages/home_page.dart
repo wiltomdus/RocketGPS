@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gps_link/src/Pages/geolocation_page.dart';
-import 'package:gps_link/src/settings/settings_controller.dart';
+import 'package:rocket_gps/src/Pages/geolocation_page.dart';
+import 'package:rocket_gps/src/settings/settings_controller.dart';
 
 class HomePage extends StatefulWidget {
   final SettingsController settingsController;

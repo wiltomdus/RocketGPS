@@ -49,7 +49,7 @@ class GPSDataCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.purple,
+                      color: Color(0xFF9C27B0),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),

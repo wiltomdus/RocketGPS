@@ -1,4 +1,4 @@
-# gps_link
+# rocket_gps
 
 A new Flutter project.
 

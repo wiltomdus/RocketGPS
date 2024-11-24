@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:gps_link/src/models/gps_data_item.dart';
+import 'package:rocket_gps/src/models/gps_data_item.dart';
 
 class RecoveryCard extends StatelessWidget {
   final String title;
