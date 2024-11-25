@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:rocket_gps/app_theme.dart';
 import 'package:rocket_gps/src/Pages/geolocation_page.dart';
 import 'package:rocket_gps/src/Pages/home_page.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
@@ -18,58 +19,6 @@ class MyApp extends StatelessWidget {
   });
 
   final SettingsController settingsController;
-
-  final FlexSchemeColor _schemeLight = FlexSchemeColor.from(
-    primary: const Color(0xFF00296B),
-    secondary: const Color(0xFFFF7B00),
-  );
-
-  final FlexSchemeColor _schemeDark = FlexSchemeColor.from(
-    primary: const Color(0xFF6B8BC3),
-  );
-
-  final int _toDarkLevel = 30;
-  final bool _swapColors = false;
-
-  late final String? _fontFamily = GoogleFonts.notoSans().fontFamily;
-
-  final TextTheme _textTheme = const TextTheme(
-    displayLarge: TextStyle(fontSize: 57),
-    displayMedium: TextStyle(fontSize: 45),
-    displaySmall: TextStyle(fontSize: 36),
-    labelSmall: TextStyle(fontSize: 11, letterSpacing: 0.5),
-  );
-
-  final FlexScheme _scheme = FlexScheme.deepPurple;
-  final bool _useScheme = true;
-  final double _appBarElevation = 0.5;
-  final double _appBarOpacity = 0.94;
-  final bool _computeDarkTheme = true;
-
-  final bool _transparentStatusBar = true;
-  final FlexTabBarStyle _tabBarForAppBar = FlexTabBarStyle.forAppBar;
-  final bool _tooltipsMatchBackground = true;
-  final VisualDensity _visualDensity = FlexColorScheme.comfortablePlatformDensity;
-  final TargetPlatform _platform = defaultTargetPlatform;
-  final FlexSurfaceMode _surfaceMode = FlexSurfaceMode.highBackgroundLowScaffold;
-  final int _blendLevel = 15;
-
-  final FlexSubThemesData _subThemesData = const FlexSubThemesData(
-    interactionEffects: true,
-    defaultRadius: null,
-    bottomSheetRadius: 24,
-    useMaterial3Typography: true,
-    inputDecoratorBorderType: FlexInputBorderType.outline,
-    inputDecoratorIsFilled: true,
-    inputDecoratorUnfocusedHasBorder: true,
-    inputDecoratorSchemeColor: SchemeColor.primary,
-
-    chipSchemeColor: SchemeColor.primary,
-
-    elevatedButtonElevation: 1,
-    thickBorderWidth: 2, // Default is 2.0.
-    thinBorderWidth: 1.5, // Default is 1.5.
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -107,51 +56,15 @@ class MyApp extends StatelessWidget {
           // directory.
           onGenerateTitle: (BuildContext context) => AppLocalizations.of(context)!.appTitle,
 
-          theme: FlexThemeData.light(
-            colors: _useScheme ? null : _schemeLight,
-            scheme: _scheme,
-            swapColors: _swapColors,
-            lightIsWhite: false,
-            appBarStyle: FlexAppBarStyle.primary,
-            appBarElevation: _appBarElevation,
-            appBarOpacity: _appBarOpacity,
-            transparentStatusBar: _transparentStatusBar,
-            tabBarStyle: _tabBarForAppBar,
-            surfaceMode: _surfaceMode,
-            blendLevel: _blendLevel,
-            tooltipsMatchBackground: _tooltipsMatchBackground,
-            textTheme: _textTheme,
-            primaryTextTheme: _textTheme,
-            subThemesData: _subThemesData,
-            visualDensity: _visualDensity,
-            platform: _platform,
-          ),
-          darkTheme: FlexThemeData.dark(
-            colors: (_useScheme && _computeDarkTheme)
-                ? FlexColor.schemes[_scheme]!.light.toDark(_toDarkLevel)
-                : _useScheme
-                    ? null
-                    : _computeDarkTheme
-                        ? _schemeLight.toDark(_toDarkLevel)
-                        : _schemeDark,
-            scheme: _scheme,
-            swapColors: _swapColors,
-            darkIsTrueBlack: false,
-            appBarStyle: FlexAppBarStyle.background,
-            appBarElevation: _appBarElevation,
-            appBarOpacity: _appBarOpacity,
-            transparentStatusBar: _transparentStatusBar,
-            tabBarStyle: _tabBarForAppBar,
-            surfaceMode: _surfaceMode,
-            blendLevel: _blendLevel,
-            tooltipsMatchBackground: _tooltipsMatchBackground,
-            fontFamily: _fontFamily,
-            textTheme: _textTheme,
-            primaryTextTheme: _textTheme,
-            subThemesData: _subThemesData,
-            visualDensity: _visualDensity,
-            platform: _platform,
-          ),
+          // Theme setup for FlexColorScheme package v8.
+          // Use same major flex_color_scheme package version. If you use a
+          // lower minor version, some properties may not be supported.
+          // In that case, remove them after copying this theme to your
+          // app or upgrade package to version 8.0.1.
+          //
+          // Use this in a MaterialApp as theme and darkTheme properties.
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
           themeMode: settingsController.themeMode,
 
           // Define a function to handle named routes in order to support
