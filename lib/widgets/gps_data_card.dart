@@ -59,7 +59,7 @@ class GPSDataCard extends StatelessWidget {
                 SizedBox(
                   width: 48, // Fixed width for consistency
                   child: IconButton(
-                    icon: Icon(showDMS ? Icons.format_list_numbered : Icons.rotate_right),
+                    icon: Icon(showDMS ? Icons.numbers : Icons.schedule),
                     onPressed: onFormatToggle,
                     tooltip: showDMS ? 'Show Decimal' : 'Show DMS',
                     padding: EdgeInsets.zero, // Reduce padding
