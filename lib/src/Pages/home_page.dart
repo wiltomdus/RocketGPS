@@ -29,7 +29,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GPS Link'),
+        title: const Text('Rocket GPS'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
