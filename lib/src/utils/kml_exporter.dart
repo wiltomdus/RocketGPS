@@ -6,6 +6,11 @@ import 'package:geolocator/geolocator.dart';
 
 class KMLExporter {
   static Future<String?> exportPositions(List<Position> positions) async {
+    if (positions.isEmpty) {
+      debugPrint('No positions to export');
+      return 'no positions to export';
+    }
+
     try {
       final kml = '''<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
@@ -42,11 +47,19 @@ ${positions.map((pos) => '${pos.longitude},${pos.latitude},${pos.altitude}').joi
 </kml>''';
 
       // Get downloads directory
-      final downloadPath = await ExternalPath.getExternalStoragePublicDirectory(ExternalPath.DIRECTORY_DOWNLOADS);
+      final downloadPath = await ExternalPath.getExternalStoragePublicDirectory(ExternalPath.DIRECTORY_DOCUMENTS);
+
+      final rocketGPSPath = '$downloadPath/RocketGPS';
+      final rocketGPSDir = Directory(rocketGPSPath);
+
+      // Create directory if it doesn't exist
+      if (!await rocketGPSDir.exists()) {
+        await rocketGPSDir.create();
+      }
 
       // Create filename with timestamp
       final timestamp = DateTime.now().toString().replaceAll(RegExp(r'[^\w]'), '_');
-      final filePath = '$downloadPath/rocket_flight_$timestamp.kml';
+      final filePath = '$rocketGPSPath/rocket_flight_$timestamp.kml';
 
       // Write file
       final file = File(filePath);

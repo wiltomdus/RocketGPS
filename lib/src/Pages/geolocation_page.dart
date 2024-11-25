@@ -360,7 +360,11 @@ class _GeolocationPageState extends State<GeolocationPage> {
     );
     if (result == true) {
       final filePath = await KMLExporter.exportPositions(_positionHistory);
-      if (filePath != null) {
+      if (filePath == 'no positions to export') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No positions to export')),
+        );
+      } else if (filePath != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Saved to: $filePath')),
         );
