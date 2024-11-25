@@ -53,9 +53,7 @@ class StatusBar extends StatelessWidget {
     }
 
     // Only call onConnect if permissions granted
-    if (onConnect != null) {
-      onConnect!();
-    }
+    onConnect();
   }
 
   @override

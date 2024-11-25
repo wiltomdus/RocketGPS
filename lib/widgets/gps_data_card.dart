@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:rocket_gps/app_theme.dart';
 
 class GPSDataCard extends StatelessWidget {
   final String title;
@@ -49,7 +50,7 @@ class GPSDataCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF9C27B0),
+                      color: AppTheme.accent,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -87,7 +88,7 @@ class GPSDataCard extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 8.0),
         child: Row(
           children: [
-            Icon(icon, color: Colors.purple[700], size: 24),
+            Icon(icon, color: AppTheme.accent, size: 24),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
