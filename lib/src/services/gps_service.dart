@@ -7,7 +7,7 @@ class GPSService {
   double? _rocketLongitude;
   double? _previousAltitude;
   DateTime? _previousTimestamp;
-  double _verticalVelocity = 0;
+  double? _verticalVelocity;
 
   // Existing permission and location methods
   Future<Position> getCurrentPosition() async {
@@ -57,9 +57,9 @@ class GPSService {
     );
   }
 
-  double calculateBearing() {
+  double? calculateBearing() {
     if (_phonePosition == null || _rocketLatitude == null || _rocketLongitude == null) {
-      return 0.0;
+      return null;
     }
 
     final lat1 = _phonePosition!.latitude * pi / 180;
@@ -89,6 +89,6 @@ class GPSService {
   }
 
   // Getters
-  double get verticalVelocity => _verticalVelocity;
+  double? get verticalVelocity => _verticalVelocity;
   bool get hasValidPositions => _phonePosition != null && _rocketLatitude != null && _rocketLongitude != null;
 }

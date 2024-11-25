@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:bluetooth_classic/bluetooth_classic.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:rocket_gps/app_theme.dart';
 import 'package:rocket_gps/src/models/device_state.dart';
 import 'package:rocket_gps/src/models/gps_data_item.dart';
 import 'package:rocket_gps/src/services/bluetooth_service.dart';
@@ -12,6 +13,8 @@ import 'package:rocket_gps/widgets/recovery_card.dart';
 import 'package:rocket_gps/widgets/status_bar.dart';
 import 'package:intl/intl.dart';
 import 'package:map_launcher/map_launcher.dart';
+import '../models/rocket_snapshot.dart';
+import '../services/snapshot_service.dart';
 
 class GeolocationPage extends StatefulWidget {
   const GeolocationPage({super.key});
@@ -26,6 +29,8 @@ class _GeolocationPageState extends State<GeolocationPage> {
   final BluetoothService _bluetoothService;
   final GPSService _gpsService;
   final List<Position> _positionHistory = [];
+  final SnapshotService _snapshotService = SnapshotService();
+  RocketSnapshot? _lastSnapshot;
 
   Position? _phonePosition;
   double? _latitude;
@@ -48,7 +53,56 @@ class _GeolocationPageState extends State<GeolocationPage> {
   @override
   void initState() {
     super.initState();
+    _loadLastSnapshot();
+    _checkLocationPermission();
+
     _setupTimers();
+  }
+
+  Future<void> _loadLastSnapshot() async {
+    final snapshot = await _snapshotService.getLastSnapshot();
+    if (snapshot != null) {
+      setState(() {
+        _lastSnapshot = snapshot;
+        // Update GPS service with last known position
+        _gpsService.updateRocketPosition(
+          snapshot.latitude,
+          snapshot.longitude,
+          snapshot.altitude,
+        );
+        _latitude = snapshot.latitude;
+        _longitude = snapshot.longitude;
+        _altitude = snapshot.altitude;
+      });
+    }
+  }
+
+  Future<void> _saveSnapshot() async {
+    if (_latitude != null && _longitude != null && _altitude != null) {
+      final snapshot = RocketSnapshot(
+        latitude: _latitude!,
+        longitude: _longitude!,
+        altitude: _altitude!,
+        verticalVelocity: _gpsService.verticalVelocity,
+        timestamp: DateTime.now(),
+      );
+
+      await _snapshotService.saveSnapshot(snapshot);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rocket position snapshot saved')),
+      );
+    }
+  }
+
+  Future<void> _clearSnapshot() async {
+    await _snapshotService.clearSnapshot();
+    setState(() {
+      _lastSnapshot = null;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Snapshot cleared')),
+    );
   }
 
   void _setupTimers() {
@@ -90,6 +144,34 @@ class _GeolocationPageState extends State<GeolocationPage> {
     } catch (e) {
       debugPrint('Error refreshing phone GPS: $e');
     }
+  }
+
+  Future<void> _checkLocationPermission() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      await Geolocator.requestPermission();
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        _showPermissionDeniedAlert();
+      }
+    }
+  }
+
+  void _showPermissionDeniedAlert() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Location Permission Denied'),
+        content: const Text(
+            'Location permissions are required for this app to function correctly. Please enable location permissions in your device settings to continue using the app.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleConnection() async {
@@ -237,6 +319,101 @@ class _GeolocationPageState extends State<GeolocationPage> {
     );
   }
 
+  Future<void> _showMapAlert() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('View Map'),
+        content: const Text('Open map view to see rocket location and trajectory'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Open Map'),
+          ),
+        ],
+      ),
+    );
+    if (result == true) _openMapView();
+  }
+
+  Future<void> _showExportAlert() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Export KML'),
+        content: const Text('Export position history to KML file'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Export KML'),
+          ),
+        ],
+      ),
+    );
+    if (result == true) {
+      final filePath = await KMLExporter.exportPositions(_positionHistory);
+      if (filePath != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Saved to: $filePath')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to export KML file')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showSaveSnapshotAlert() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Save Position'),
+        content: const Text('Save current rocket position for later use'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save Snapshot'),
+          ),
+        ],
+      ),
+    );
+    if (result == true) _saveSnapshot();
+  }
+
+  Future<void> _showClearSnapshotAlert() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Saved Position'),
+        content: const Text('Remove saved rocket position data?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear Snapshot'),
+          ),
+        ],
+      ),
+    );
+    if (result == true) _clearSnapshot();
+  }
+
   @override
   void dispose() {
     _gpsTimer?.cancel();
@@ -297,7 +474,9 @@ class _GeolocationPageState extends State<GeolocationPage> {
                   GPSDataItem(
                     icon: Icons.speed,
                     label: "Vertical Velocity",
-                    value: "${_gpsService.verticalVelocity.toStringAsFixed(2)} ft/s",
+                    value: _gpsService.verticalVelocity != null
+                        ? "${_gpsService.verticalVelocity?.toStringAsFixed(2)} ft/s"
+                        : "N/A",
                   ),
                   GPSDataItem(
                     icon: Icons.straighten,
@@ -309,7 +488,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
                     icon: Icons.navigation,
                     label: "Bearing to Rocket",
                     value:
-                        "${_gpsService.hasValidPositions ? _gpsService.calculateBearing().toStringAsFixed(2) : 'N/A'}°",
+                        "${_gpsService.hasValidPositions ? _gpsService.calculateBearing()?.toStringAsFixed(2) : 'N/A'}°",
                   ),
                   GPSDataItem(
                     icon: Icons.timer,
@@ -324,59 +503,48 @@ class _GeolocationPageState extends State<GeolocationPage> {
         ),
       ),
       persistentFooterButtons: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _openMapView,
-                  icon: const Icon(Icons.map),
-                  label: const Text('View Map'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    onPressed: _showMapAlert,
+                    icon: const Icon(Icons.map),
+                    color: AppTheme.accent,
+                    tooltip: 'View Map',
                   ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final filePath = await KMLExporter.exportPositions(_positionHistory);
-                    if (filePath != null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Saved to: $filePath')),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Failed to export KML file')),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text('Export KML'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.purple,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
+                  IconButton(
+                    onPressed: _showExportAlert,
+                    icon: const Icon(Icons.upload_file),
+                    color: AppTheme.accent,
+                    tooltip: 'Export KML',
                   ),
-                ),
+                  IconButton(
+                    onPressed: _showSaveSnapshotAlert,
+                    icon: const Icon(Icons.save),
+                    color: AppTheme.accent,
+                    tooltip: 'Save Position',
+                  ),
+                  IconButton(
+                    onPressed: _showClearSnapshotAlert,
+                    icon: const Icon(Icons.delete),
+                    color: Colors.red,
+                    tooltip: 'Clear Saved',
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        StatusBar(
-          deviceState: _deviceState,
-          onConnect: _handleConnection,
-          isScanning: _isScanning,
+            ),
+            const SizedBox(height: 8),
+            StatusBar(
+              deviceState: _deviceState,
+              onConnect: _handleConnection,
+              isScanning: _isScanning,
+            ),
+          ],
         ),
       ],
     );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'settings_controller.dart';
-import 'package:bluetooth_classic/bluetooth_classic.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class SettingsView extends StatefulWidget {
   final SettingsController controller;
@@ -13,11 +13,16 @@ class SettingsView extends StatefulWidget {
 }
 
 class _SettingsViewState extends State<SettingsView> {
-  final _bluetoothClassicPlugin = BluetoothClassic();
-
   @override
   void initState() {
     super.initState();
+  }
+
+  Future<Map<Permission, PermissionStatus>> checkPermissions() async {
+    Map<Permission, PermissionStatus> statuses =
+        await [Permission.bluetooth, Permission.bluetoothConnect, Permission.location].request();
+
+    return statuses;
   }
 
   @override
@@ -62,7 +67,23 @@ class _SettingsViewState extends State<SettingsView> {
           ),
           TextButton(
             onPressed: () async {
-              await _bluetoothClassicPlugin.initPermissions();
+              try {
+                final permissions = await checkPermissions();
+                String message = '';
+
+                permissions.forEach((permission, status) {
+                  message += '${permission.toString()}: ${status.toString()}\n';
+                });
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(message),
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+              } catch (e) {
+                print('Error checking permissions: $e');
+              }
             },
             child: const Text("Check Permissions"),
           ),
