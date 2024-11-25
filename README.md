@@ -63,3 +63,10 @@ flutter install
 - Export KML: Tap export icon to save flight path
 - Save Position: Tap save icon to store current location
 - Clear Data: Tap delete icon to remove saved position
+
+
+## License
+
+This project is licensed under the [GNU Affero General Public License v3.0](LICENSE). See the `LICENSE` file for more details on terms and conditions.
+
+Feel free to use and contribute to the project under these terms!
