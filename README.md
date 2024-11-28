@@ -5,16 +5,16 @@
 
 ## Description
 
-Rocket GPS is a mobile application designed for model rocket enthusiasts and hobbyists to track and recover their rockets during flight operations. The app connects to Bluetooth-enabled GPS modules attached to rockets, providing real-time tracking, position history, and recovery assistance.
+Rocket GPS is a mobile application designed for model rocket tracking and recovery. The app connects to Bluetooth classic enabled device that provides NMEA GPS data, providing real-time tracking, position history, and recovery assistance.
 
 Key capabilities:
-- Real-time GPS tracking with altitude, position, and velocity data
+- Real-time GPS tracking with altitude, position, and vertical velocity data
 - Rocket bearing indicator with integrated compass
 - Position history logging and KML export for Google Earth visualization
 - Snapshot feature to save rocket positions for later recovery
 - Bluetooth connectivity for GPS module integration
 
-Built with Flutter for modern Android devices. It was designed for visualization of EggTimer Rocketry's Eggfinder TX/Mini Transmitter and Eggfinder RX “Dongle” Receiver with the bluetooth adapter.
+Built with Flutter for modern Android devices. It was designed for visualization of EggTimer Rocketry's Eggfinder TX/Mini Transmitter and Eggfinder RX “Dongle” Receiver with the bluetooth adapter. It will work with any other device that transmits NMEA data that contains the `$GPGGA` string
 
 
 ## Features
@@ -64,6 +64,9 @@ flutter install
 - Save Position: Tap save icon to store current location
 - Clear Data: Tap delete icon to remove saved position
 
+## Roadmap
+
+This project will be updated as needed if bugs or new features are needed. If you want a new feature and/or support for bluetooth low energy devices, feel free to create an issue and I will look into it.
 
 ## License
 
