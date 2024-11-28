@@ -1,19 +1,15 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:rocket_gps/app_theme.dart';
 import 'package:rocket_gps/src/Pages/geolocation_page.dart';
 import 'package:rocket_gps/src/Pages/home_page.dart';
-import 'package:flex_color_scheme/flex_color_scheme.dart';
-
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
 
 /// The Widget that configures your application.
 class MyApp extends StatelessWidget {
-  MyApp({
+  const MyApp({
     super.key,
     required this.settingsController,
   });

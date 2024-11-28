@@ -68,19 +68,18 @@ class _SettingsViewState extends State<SettingsView> {
           TextButton(
             onPressed: () async {
               try {
+                final messenger = ScaffoldMessenger.of(context);
                 final permissions = await checkPermissions();
-                String message = '';
+                String message = permissions.entries.map((entry) => '${entry.key}: ${entry.value}').join('\n');
 
-                permissions.forEach((permission, status) {
-                  message += '${permission.toString()}: ${status.toString()}\n';
-                });
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(message),
-                    duration: Duration(seconds: 3),
-                  ),
-                );
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(message),
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
               } catch (e) {
                 print('Error checking permissions: $e');
               }

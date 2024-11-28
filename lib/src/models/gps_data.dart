@@ -1,7 +1,7 @@
 class GPSData {
-  final double latitude;
-  final double longitude;
-  final double altitude;
+  double latitude;
+  double longitude;
+  double altitude;
   final DateTime timestamp;
 
   GPSData({

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:rocket_gps/app_theme.dart';
 import 'package:rocket_gps/src/models/device_state.dart';
+import 'package:rocket_gps/src/models/gps_data.dart';
 import 'package:rocket_gps/src/models/gps_data_item.dart';
 import 'package:rocket_gps/src/services/bluetooth_service.dart';
 import 'package:rocket_gps/src/services/gps_service.dart';
@@ -26,17 +27,17 @@ class GeolocationPage extends StatefulWidget {
 }
 
 class _GeolocationPageState extends State<GeolocationPage> {
+  static const _gpsUpdateInterval = Duration(seconds: 1);
+  static const _historyUpdateInterval = Duration(milliseconds: 500);
+  static const _defaultBtDeviceName = 'BT04-A';
+
   final BluetoothService _bluetoothService;
   final GPSService _gpsService;
   final List<Position> _positionHistory = [];
   final SnapshotService _snapshotService = SnapshotService();
-  RocketSnapshot? _lastSnapshot;
 
   Position? _phonePosition;
-  double? _latitude;
-
-  double? _longitude;
-  double? _altitude;
+  GPSData? _rocketPosition;
   bool _showDMS = false;
   DeviceState _deviceState = DeviceState.disconnected;
   bool _isScanning = false;
@@ -55,7 +56,6 @@ class _GeolocationPageState extends State<GeolocationPage> {
     super.initState();
     _loadLastSnapshot();
     _checkLocationPermission();
-
     _setupTimers();
   }
 
@@ -63,77 +63,89 @@ class _GeolocationPageState extends State<GeolocationPage> {
     final snapshot = await _snapshotService.getLastSnapshot();
     if (snapshot != null) {
       setState(() {
-        _lastSnapshot = snapshot;
         // Update GPS service with last known position
         _gpsService.updateRocketPosition(
           snapshot.latitude,
           snapshot.longitude,
           snapshot.altitude,
         );
-        _latitude = snapshot.latitude;
-        _longitude = snapshot.longitude;
-        _altitude = snapshot.altitude;
+        _rocketPosition?.latitude = snapshot.latitude;
+        _rocketPosition?.longitude = snapshot.longitude;
+        _rocketPosition?.altitude = snapshot.altitude;
       });
     }
   }
 
   Future<void> _saveSnapshot() async {
-    if (_latitude != null && _longitude != null && _altitude != null) {
+    if (_rocketPosition?.latitude != null && _rocketPosition?.longitude != null && _rocketPosition?.altitude != null) {
       final snapshot = RocketSnapshot(
-        latitude: _latitude!,
-        longitude: _longitude!,
-        altitude: _altitude!,
+        latitude: _rocketPosition!.latitude,
+        longitude: _rocketPosition!.longitude,
+        altitude: _rocketPosition!.altitude,
         verticalVelocity: _gpsService.verticalVelocity,
         timestamp: DateTime.now(),
       );
 
       await _snapshotService.saveSnapshot(snapshot);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rocket position snapshot saved')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Rocket position snapshot saved')),
+        );
+      }
     }
   }
 
   Future<void> _clearSnapshot() async {
     await _snapshotService.clearSnapshot();
-    setState(() {
-      _lastSnapshot = null;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Snapshot cleared')),
-    );
+    setState(() {});
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Snapshot cleared')),
+      );
+    }
   }
 
   void _setupTimers() {
     _gpsTimer = Timer.periodic(
-      const Duration(seconds: 1),
+      _gpsUpdateInterval,
       (_) => _updatePhoneGPS(),
     );
     _setupHistoryTimer();
   }
 
   void _setupHistoryTimer() {
-    _historyTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
-      if (_deviceState == DeviceState.connected && _latitude != null && _longitude != null && _altitude != null) {
+    _historyTimer = Timer.periodic(_historyUpdateInterval, (timer) {
+      if (_deviceState == DeviceState.connected &&
+          _rocketPosition?.latitude != null &&
+          _rocketPosition?.longitude != null &&
+          _rocketPosition?.altitude != null) {
         setState(() {
-          _positionHistory.insert(
-              0,
-              Position(
-                latitude: _latitude!,
-                longitude: _longitude!,
-                altitude: _altitude!,
-                altitudeAccuracy: 0,
-                accuracy: 0,
-                heading: 0,
-                headingAccuracy: 0,
-                speed: 0,
-                speedAccuracy: 0,
-                timestamp: DateTime.now(),
-              ));
+          _addToHistory(
+            Position(
+              latitude: _rocketPosition!.latitude,
+              longitude: _rocketPosition!.longitude,
+              altitude: _rocketPosition!.altitude,
+              altitudeAccuracy: 0,
+              accuracy: 0,
+              heading: 0,
+              headingAccuracy: 0,
+              speed: 0,
+              speedAccuracy: 0,
+              timestamp: DateTime.now(),
+            ),
+          );
         });
       }
     });
+  }
+
+  void _addToHistory(Position position) {
+    const maxHistorySize = 1000;
+    _positionHistory.insert(0, position);
+    if (_positionHistory.length > maxHistorySize) {
+      _positionHistory.removeLast();
+    }
   }
 
   void _updatePhoneGPS() async {
@@ -184,7 +196,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
       try {
         var devices = await _bluetoothService.getPairedDevices();
         var targetDevice = devices.firstWhere(
-          (device) => device.name == 'BT04-A',
+          (device) => device.name == _defaultBtDeviceName,
           orElse: () => throw Exception('Device not found'),
         );
 
@@ -204,9 +216,9 @@ class _GeolocationPageState extends State<GeolocationPage> {
     _dataSubscription = _bluetoothService.gpsStream.listen(
       (gpsData) {
         setState(() {
-          _latitude = gpsData.latitude;
-          _longitude = gpsData.longitude;
-          _altitude = gpsData.altitude;
+          _rocketPosition?.latitude = gpsData.latitude;
+          _rocketPosition?.longitude = gpsData.longitude;
+          _rocketPosition?.altitude = gpsData.altitude;
           _lastGPSUpdate = DateTime.now();
           _gpsService.updateRocketPosition(gpsData.latitude, gpsData.longitude, gpsData.altitude);
         });
@@ -219,7 +231,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
   }
 
   Future<void> _openMapView() async {
-    if (_phonePosition == null || _latitude == null || _longitude == null) {
+    if (_phonePosition == null || _rocketPosition?.latitude == null || _rocketPosition?.longitude == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Waiting for GPS positions...')),
       );
@@ -230,9 +242,12 @@ class _GeolocationPageState extends State<GeolocationPage> {
       final availableMaps = await MapLauncher.installedMaps;
 
       if (availableMaps.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No map apps installed')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No map apps installed')),
+          );
+        }
+
         return;
       }
 
@@ -248,16 +263,18 @@ class _GeolocationPageState extends State<GeolocationPage> {
           _phonePosition!.longitude,
         ),
         destination: Coords(
-          _latitude!,
-          _longitude!,
+          _rocketPosition!.latitude,
+          _rocketPosition!.longitude,
         ),
         directionsMode: DirectionsMode.walking,
       );
     } catch (e) {
       debugPrint('Map launch error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error opening map: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening map: $e')),
+        );
+      }
     }
   }
 
@@ -361,17 +378,23 @@ class _GeolocationPageState extends State<GeolocationPage> {
     if (result == true) {
       final filePath = await KMLExporter.exportPositions(_positionHistory);
       if (filePath == 'no positions to export') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No positions to export')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('No positions to export')),
+          );
+        }
       } else if (filePath != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Saved to: $filePath')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Saved to: $filePath')),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to export KML file')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to export KML file')),
+          );
+        }
       }
     }
   }
@@ -440,11 +463,11 @@ class _GeolocationPageState extends State<GeolocationPage> {
                   Expanded(
                     child: GPSDataCard(
                       title: "Rocket",
-                      position: _latitude != null
+                      position: _rocketPosition?.latitude != null
                           ? Position(
-                              latitude: _latitude!,
-                              longitude: _longitude!,
-                              altitude: _altitude!,
+                              latitude: _rocketPosition!.latitude,
+                              longitude: _rocketPosition!.longitude,
+                              altitude: _rocketPosition!.altitude,
                               altitudeAccuracy: 0,
                               accuracy: 0,
                               heading: 0,
