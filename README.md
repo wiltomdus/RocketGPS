@@ -25,17 +25,27 @@ Built with Flutter for modern Android devices. It was designed for visualization
 - **Position Memory**: Save rocket positions as snapshots for recovery after app restarts.
 - **Bluetooth Integration**: Easy connection to compatible GPS modules with status monitoring.
 
+## Prerequisites
+
+- Android device (minimum SDK 21 / Android version 5.0)
+- Bluetooth Classic enabled GPS receiver
+- Compatible GPS transmitter (e.g., Eggfinder TX/Mini)
 
 ## Installation
 
-### Option 1.
-Install from the Google PlayStore
-
-### Option 2.
-Install the project with flutter cli:
-
-```bash
-flutter build apk --release
+1. Clone the repository
+```Bash
+git clone https://github.com/wiltomdus/RocketGPS.git
+cd RocketGPS
+```
+2. Install dependencies
+```Bash
+# Install the apk/appbundle on the connected device
+flutter pub get
+```
+3. Build and install
+```Bash 
+flutter build apk --flavor openSource --release
 flutter install
 ```
 
@@ -63,6 +73,57 @@ flutter install
 - Export KML: Tap export icon to save flight path
 - Save Position: Tap save icon to store current location
 - Clear Data: Tap delete icon to remove saved position
+
+## Development
+
+### Available Flavors
+- openSource: Community version
+- playStore: Google Play Store version
+
+### Build Commands
+```bash
+# Run specific flavor
+flutter run --flavor openSource
+flutter run --flavor playStore
+
+# Debug builds
+flutter build apk --flavor openSource --debug
+flutter build apk --flavor playStore --debug
+
+# Release builds
+flutter build apk --flavor openSource --release
+flutter build apk --flavor playStore --release
+
+# Build app bundles (Play Store)
+flutter build appbundle --flavor playStore --release
+
+# Clean and rebuild
+flutter clean
+flutter pub get
+flutter build apk --flavor playStore --release
+```
+
+### Debug vs Release Builds
+
+**Debug builds** include developer tools, logging, assertions, and debugging symbols. They are larger in size but useful during development for debugging and testing.
+
+**Release builds** are optimized for performance and size:
+- Code is compiled with full optimizations
+- Debugging symbols are removed
+- Assets are compressed
+- ProGuard rules are applied (Android)
+- Suitable for distribution to end users
+
+## Contributing
+1. Fork the repository
+2. Create feature branch
+3. Commit changes
+4. Open pull request
+
+## Support
+1. Open an issue
+2. Feature requests
+3. Discussions
 
 ## Roadmap
 
