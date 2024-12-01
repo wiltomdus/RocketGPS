@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'settings_controller.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class SettingsView extends StatefulWidget {
   final SettingsController controller;
@@ -13,9 +14,19 @@ class SettingsView extends StatefulWidget {
 }
 
 class _SettingsViewState extends State<SettingsView> {
+  PackageInfo? _packageInfo;
+
   @override
   void initState() {
     super.initState();
+    _initPackageInfo();
+  }
+
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    setState(() {
+      _packageInfo = info;
+    });
   }
 
   Future<Map<Permission, PermissionStatus>> checkPermissions() async {
@@ -85,6 +96,31 @@ class _SettingsViewState extends State<SettingsView> {
               }
             },
             child: const Text("Check Permissions"),
+          ),
+          const Divider(),
+
+          // About Section
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('About'),
+            subtitle: Text('Version ${_packageInfo?.version ?? ''}+${_packageInfo?.buildNumber ?? ''}'),
+            onTap: () {
+              showAboutDialog(
+                context: context,
+                applicationName: 'Rocket GPS',
+                applicationVersion: 'v${_packageInfo?.version ?? ''}',
+                applicationIcon: Image.asset(
+                  'assets/images/Rocket_GPS_logo.png',
+                  width: 50,
+                  height: 50,
+                ),
+                children: const [
+                  Text('A GPS tracking app for bluetooth classic Rocketry GPS devices.'),
+                  SizedBox(height: 8),
+                  Text('© 2024 Rocket GPS'),
+                ],
+              );
+            },
           ),
         ],
       ),
