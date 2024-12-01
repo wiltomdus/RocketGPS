@@ -1,23 +1,32 @@
+import 'dart:collection';
+import 'package:geolocator/geolocator.dart';
+
 class PositionHistory {
-  final double latitude;
-  final double longitude;
-  final DateTime timestamp;
+  static const maxHistorySize = 1000;
+  final Queue<Position> _positionHistory;
 
-  PositionHistory({
-    required this.latitude,
-    required this.longitude,
-    required this.timestamp,
-  });
+  PositionHistory() : _positionHistory = Queue<Position>();
 
-  Map<String, dynamic> toJson() => {
-        'latitude': latitude,
-        'longitude': longitude,
-        'timestamp': timestamp.toIso8601String(),
-      };
+  void add(Position position) {
+    _positionHistory.addFirst(position);
+    if (_positionHistory.length > maxHistorySize) {
+      _positionHistory.removeLast();
+    }
+  }
 
-  factory PositionHistory.fromJson(Map<String, dynamic> json) => PositionHistory(
-        latitude: json['latitude'],
-        longitude: json['longitude'],
-        timestamp: DateTime.parse(json['timestamp']),
-      );
+  List<Position> get history => _positionHistory.toList();
+
+  void clear() {
+    _positionHistory.clear();
+  }
+
+  bool get isEmpty => _positionHistory.isEmpty;
+
+  bool get isNotEmpty => _positionHistory.isNotEmpty;
+
+  int get length => _positionHistory.length;
+
+  Position? get last => _positionHistory.isNotEmpty ? _positionHistory.first : null;
+
+  Position? get first => _positionHistory.isNotEmpty ? _positionHistory.last : null;
 }

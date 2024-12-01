@@ -7,6 +7,7 @@ import 'package:rocket_gps/app_theme.dart';
 import 'package:rocket_gps/src/models/device_state.dart';
 import 'package:rocket_gps/src/models/gps_data.dart';
 import 'package:rocket_gps/src/models/gps_data_item.dart';
+import 'package:rocket_gps/src/models/position_history.dart';
 import 'package:rocket_gps/src/services/bluetooth_service.dart';
 import 'package:rocket_gps/src/services/gps_service.dart';
 import 'package:rocket_gps/src/utils/kml_exporter.dart';
@@ -17,7 +18,6 @@ import 'package:intl/intl.dart';
 import 'package:map_launcher/map_launcher.dart';
 import '../models/rocket_snapshot.dart';
 import '../services/snapshot_service.dart';
-import 'dart:collection';
 
 class GeolocationPage extends StatefulWidget {
   const GeolocationPage({super.key});
@@ -35,7 +35,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
 
   final BluetoothService _bluetoothService;
   final GPSService _gpsService;
-  final Queue<Position> _positionHistory = ListQueue(1000);
+  final PositionHistory _positionHistory = PositionHistory();
   final SnapshotService _snapshotService = SnapshotService();
 
   Position? _phonePosition;
@@ -123,7 +123,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
           _rocketPosition?.longitude != null &&
           _rocketPosition?.altitude != null) {
         setState(() {
-          _addToHistory(
+          _positionHistory.add(
             Position(
               latitude: _rocketPosition!.latitude,
               longitude: _rocketPosition!.longitude,
@@ -140,14 +140,6 @@ class _GeolocationPageState extends State<GeolocationPage> {
         });
       }
     });
-  }
-
-  void _addToHistory(Position position) {
-    const maxHistorySize = 1000;
-    _positionHistory.addFirst(position);
-    if (_positionHistory.length > maxHistorySize) {
-      _positionHistory.removeLast();
-    }
   }
 
   void _updatePhoneGPS() async {
@@ -336,7 +328,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
                   shrinkWrap: true,
                   itemCount: _positionHistory.length,
                   itemBuilder: (context, index) {
-                    final position = _positionHistory.toList()[index];
+                    final position = _positionHistory.history[index];
                     return ListTile(
                       dense: true,
                       title: Text(
@@ -398,7 +390,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
       ),
     );
     if (result == true) {
-      final filePath = await KMLExporter.exportPositions(_positionHistory.toList());
+      final filePath = await KMLExporter.exportPositions(_positionHistory.history);
       if (filePath == 'no positions to export') {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
