@@ -14,17 +14,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _currentIndex = 0;
-
-  Widget _getCurrentPage() {
-    switch (_currentIndex) {
-      case 0:
-        return const GeolocationPage();
-      default:
-        return const GeolocationPage();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,13 +28,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: _getCurrentPage(), // Dynamically get the current page
+      body: const GeolocationPage(),
     );
-  }
-
-  void onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
   }
 }
