@@ -19,16 +19,16 @@ import 'package:intl/intl.dart';
 import '../models/rocket_snapshot.dart';
 import '../services/snapshot_service.dart';
 
-class GeolocationPage extends StatefulWidget {
-  const GeolocationPage({super.key});
+class TrackingPage extends StatefulWidget {
+  const TrackingPage({super.key});
 
   @override
-  State<GeolocationPage> createState() => _GeolocationPageState();
+  State<TrackingPage> createState() => _TrackingPageState();
 
   static const routeName = '/geolocation';
 }
 
-class _GeolocationPageState extends State<GeolocationPage> {
+class _TrackingPageState extends State<TrackingPage> {
   static const _gpsUpdateInterval = Duration(seconds: 1);
   static const _historyUpdateInterval = Duration(milliseconds: 500);
   static const _defaultBtDeviceName = 'BT04-A';
@@ -53,7 +53,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
 
   DateTime? _lastGPSUpdate;
 
-  _GeolocationPageState() : _gpsService = GPSService();
+  _TrackingPageState() : _gpsService = GPSService();
 
   @override
   void initState() {

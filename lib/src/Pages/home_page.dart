@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:rocket_gps/src/Pages/geolocation_page.dart';
+import 'package:rocket_gps/src/Pages/tracking_page.dart';
 import 'package:rocket_gps/src/settings/settings_controller.dart';
 
 class HomePage extends StatefulWidget {
@@ -28,7 +28,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: const GeolocationPage(),
+      body: const TrackingPage(),
     );
   }
 }

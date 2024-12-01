@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:rocket_gps/app_theme.dart';
-import 'package:rocket_gps/src/Pages/geolocation_page.dart';
+import 'package:rocket_gps/src/Pages/tracking_page.dart';
 import 'package:rocket_gps/src/Pages/home_page.dart';
 import 'settings/settings_controller.dart';
 import 'settings/settings_view.dart';
@@ -74,8 +74,8 @@ class MyApp extends StatelessWidget {
                     return SettingsView(controller: settingsController);
                   case HomePage.routeName:
                     return HomePage(settingsController: settingsController);
-                  case GeolocationPage.routeName:
-                    return const GeolocationPage();
+                  case TrackingPage.routeName:
+                    return const TrackingPage();
                   default:
                     return HomePage(settingsController: settingsController);
                 }
