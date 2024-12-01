@@ -28,6 +28,8 @@ dependencies:
   flutter_svg: ^2.0.15
   permission_handler: ^11.3.1
   flutter_compass: ^0.8.1
+  package_info_plus: ^8.1.1
+  device_info_plus: ^11.1.1
 
 dev_dependencies:
   flutter_test:
