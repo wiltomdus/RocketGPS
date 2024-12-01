@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:bluetooth_classic/bluetooth_classic.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:rocket_gps/app_theme.dart';
 import 'package:rocket_gps/src/models/device_state.dart';
 import 'package:rocket_gps/src/models/gps_data.dart';
@@ -10,12 +9,13 @@ import 'package:rocket_gps/src/models/gps_data_item.dart';
 import 'package:rocket_gps/src/models/position_history.dart';
 import 'package:rocket_gps/src/services/bluetooth_service.dart';
 import 'package:rocket_gps/src/services/gps_service.dart';
+import 'package:rocket_gps/src/services/map_service.dart';
+import 'package:rocket_gps/src/services/permission_handler.dart';
 import 'package:rocket_gps/src/utils/kml_exporter.dart';
 import 'package:rocket_gps/widgets/gps_data_card.dart';
 import 'package:rocket_gps/widgets/recovery_card.dart';
 import 'package:rocket_gps/widgets/status_bar.dart';
 import 'package:intl/intl.dart';
-import 'package:map_launcher/map_launcher.dart';
 import '../models/rocket_snapshot.dart';
 import '../services/snapshot_service.dart';
 
@@ -33,7 +33,11 @@ class _GeolocationPageState extends State<GeolocationPage> {
   static const _historyUpdateInterval = Duration(milliseconds: 500);
   static const _defaultBtDeviceName = 'BT04-A';
 
-  final BluetoothService _bluetoothService;
+  late final PermissionHandler _permissionHandler;
+  late final MapService _mapService;
+
+  final BluetoothService _bluetoothService =
+      BluetoothService(BluetoothClassic(), defaultDeviceName: _defaultBtDeviceName);
   final GPSService _gpsService;
   final PositionHistory _positionHistory = PositionHistory();
   final SnapshotService _snapshotService = SnapshotService();
@@ -49,15 +53,15 @@ class _GeolocationPageState extends State<GeolocationPage> {
 
   DateTime? _lastGPSUpdate;
 
-  _GeolocationPageState()
-      : _bluetoothService = BluetoothService(BluetoothClassic()),
-        _gpsService = GPSService();
+  _GeolocationPageState() : _gpsService = GPSService();
 
   @override
   void initState() {
     super.initState();
+    _permissionHandler = PermissionHandler(context);
+    _permissionHandler.checkPermissions();
+    _mapService = MapService(context: context);
     _loadLastSnapshot();
-    _checkPermissions();
     _setupTimers();
   }
 
@@ -152,56 +156,6 @@ class _GeolocationPageState extends State<GeolocationPage> {
     }
   }
 
-  Future<void> _checkPermissions() async {
-    Map<Permission, PermissionStatus> statuses = await [
-      Permission.nearbyWifiDevices,
-      Permission.location,
-      Permission.bluetooth,
-      Permission.bluetoothConnect,
-    ].request();
-
-    if (statuses[Permission.location] == PermissionStatus.denied ||
-        statuses[Permission.location] == PermissionStatus.permanentlyDenied) {
-      _showPermissionDeniedAlert('Location');
-    }
-
-    if (statuses[Permission.bluetooth] == PermissionStatus.denied ||
-        statuses[Permission.bluetooth] == PermissionStatus.permanentlyDenied) {
-      _showPermissionDeniedAlert('Bluetooth');
-    }
-
-    if (statuses[Permission.nearbyWifiDevices] == PermissionStatus.denied ||
-        statuses[Permission.nearbyWifiDevices] == PermissionStatus.permanentlyDenied) {
-      _showPermissionDeniedAlert('Nearby Devices');
-    }
-
-    if (statuses[Permission.bluetoothConnect] == PermissionStatus.denied ||
-        statuses[Permission.bluetoothConnect] == PermissionStatus.permanentlyDenied) {
-      _showPermissionDeniedAlert('Bluetooth Connect');
-    }
-  }
-
-  void _showPermissionDeniedAlert(String permissionType) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('$permissionType Permission Denied'),
-        content: Text('$permissionType permissions are required for this app to function correctly. '
-            'Please enable $permissionType permissions in your device settings to continue using the app.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-          TextButton(
-            onPressed: () => openAppSettings(),
-            child: const Text('Open Settings'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _handleConnection() async {
     if (_deviceState == DeviceState.connected) {
       await _bluetoothService.disconnect();
@@ -210,13 +164,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
     } else {
       setState(() => _isScanning = true);
       try {
-        var devices = await _bluetoothService.getPairedDevices();
-        var targetDevice = devices.firstWhere(
-          (device) => device.name == _defaultBtDeviceName,
-          orElse: () => throw Exception('Device not found'),
-        );
-
-        await _bluetoothService.connect(targetDevice.address);
+        await _bluetoothService.connect();
         _setupDataStream();
         setState(() => _deviceState = DeviceState.connected);
       } catch (e) {
@@ -242,54 +190,6 @@ class _GeolocationPageState extends State<GeolocationPage> {
         setState(() => _deviceState = DeviceState.error);
       },
     );
-  }
-
-  Future<void> _openMapView() async {
-    if (_phonePosition == null || _rocketPosition?.latitude == null || _rocketPosition?.longitude == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Waiting for GPS positions...')),
-      );
-      return;
-    }
-
-    try {
-      final availableMaps = await MapLauncher.installedMaps;
-
-      if (availableMaps.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No map apps installed')),
-          );
-        }
-
-        return;
-      }
-
-      // If Google Maps is installed, use it directly
-      final googleMaps = availableMaps.firstWhere(
-        (map) => map.mapType == MapType.google,
-        orElse: () => availableMaps.first,
-      );
-
-      await googleMaps.showDirections(
-        origin: Coords(
-          _phonePosition!.latitude,
-          _phonePosition!.longitude,
-        ),
-        destination: Coords(
-          _rocketPosition!.latitude,
-          _rocketPosition!.longitude,
-        ),
-        directionsMode: DirectionsMode.walking,
-      );
-    } catch (e) {
-      debugPrint('Map launch error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error opening map: $e')),
-        );
-      }
-    }
   }
 
   void _showPositionHistory() {
@@ -368,7 +268,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
         ],
       ),
     );
-    if (result == true) _openMapView();
+    if (result == true) _mapService.openMapView(phonePosition: _phonePosition, rocketPosition: _rocketPosition);
   }
 
   Future<void> _showExportAlert() async {
