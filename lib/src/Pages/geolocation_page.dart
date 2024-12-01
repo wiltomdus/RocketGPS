@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:bluetooth_classic/bluetooth_classic.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:rocket_gps/app_theme.dart';
 import 'package:rocket_gps/src/models/device_state.dart';
 import 'package:rocket_gps/src/models/gps_data.dart';
@@ -16,6 +17,7 @@ import 'package:intl/intl.dart';
 import 'package:map_launcher/map_launcher.dart';
 import '../models/rocket_snapshot.dart';
 import '../services/snapshot_service.dart';
+import 'dart:collection';
 
 class GeolocationPage extends StatefulWidget {
   const GeolocationPage({super.key});
@@ -33,7 +35,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
 
   final BluetoothService _bluetoothService;
   final GPSService _gpsService;
-  final List<Position> _positionHistory = [];
+  final Queue<Position> _positionHistory = ListQueue(1000);
   final SnapshotService _snapshotService = SnapshotService();
 
   Position? _phonePosition;
@@ -55,7 +57,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
   void initState() {
     super.initState();
     _loadLastSnapshot();
-    _checkLocationPermission();
+    _checkPermissions();
     _setupTimers();
   }
 
@@ -142,7 +144,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
 
   void _addToHistory(Position position) {
     const maxHistorySize = 1000;
-    _positionHistory.insert(0, position);
+    _positionHistory.addFirst(position);
     if (_positionHistory.length > maxHistorySize) {
       _positionHistory.removeLast();
     }
@@ -158,28 +160,50 @@ class _GeolocationPageState extends State<GeolocationPage> {
     }
   }
 
-  Future<void> _checkLocationPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-      await Geolocator.requestPermission();
-      permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-        _showPermissionDeniedAlert();
-      }
+  Future<void> _checkPermissions() async {
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.nearbyWifiDevices,
+      Permission.location,
+      Permission.bluetooth,
+      Permission.bluetoothConnect,
+    ].request();
+
+    if (statuses[Permission.location] == PermissionStatus.denied ||
+        statuses[Permission.location] == PermissionStatus.permanentlyDenied) {
+      _showPermissionDeniedAlert('Location');
+    }
+
+    if (statuses[Permission.bluetooth] == PermissionStatus.denied ||
+        statuses[Permission.bluetooth] == PermissionStatus.permanentlyDenied) {
+      _showPermissionDeniedAlert('Bluetooth');
+    }
+
+    if (statuses[Permission.nearbyWifiDevices] == PermissionStatus.denied ||
+        statuses[Permission.nearbyWifiDevices] == PermissionStatus.permanentlyDenied) {
+      _showPermissionDeniedAlert('Nearby Devices');
+    }
+
+    if (statuses[Permission.bluetoothConnect] == PermissionStatus.denied ||
+        statuses[Permission.bluetoothConnect] == PermissionStatus.permanentlyDenied) {
+      _showPermissionDeniedAlert('Bluetooth Connect');
     }
   }
 
-  void _showPermissionDeniedAlert() {
+  void _showPermissionDeniedAlert(String permissionType) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Location Permission Denied'),
-        content: const Text(
-            'Location permissions are required for this app to function correctly. Please enable location permissions in your device settings to continue using the app.'),
+        title: Text('$permissionType Permission Denied'),
+        content: Text('$permissionType permissions are required for this app to function correctly. '
+            'Please enable $permissionType permissions in your device settings to continue using the app.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('OK'),
+          ),
+          TextButton(
+            onPressed: () => openAppSettings(),
+            child: const Text('Open Settings'),
           ),
         ],
       ),
@@ -216,11 +240,9 @@ class _GeolocationPageState extends State<GeolocationPage> {
     _dataSubscription = _bluetoothService.gpsStream.listen(
       (gpsData) {
         setState(() {
-          _rocketPosition?.latitude = gpsData.latitude;
-          _rocketPosition?.longitude = gpsData.longitude;
-          _rocketPosition?.altitude = gpsData.altitude;
           _lastGPSUpdate = DateTime.now();
           _gpsService.updateRocketPosition(gpsData.latitude, gpsData.longitude, gpsData.altitude);
+          _rocketPosition = _gpsService.getGPSData();
         });
       },
       onError: (error) {
@@ -314,7 +336,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
                   shrinkWrap: true,
                   itemCount: _positionHistory.length,
                   itemBuilder: (context, index) {
-                    final position = _positionHistory[index];
+                    final position = _positionHistory.toList()[index];
                     return ListTile(
                       dense: true,
                       title: Text(
@@ -376,7 +398,7 @@ class _GeolocationPageState extends State<GeolocationPage> {
       ),
     );
     if (result == true) {
-      final filePath = await KMLExporter.exportPositions(_positionHistory);
+      final filePath = await KMLExporter.exportPositions(_positionHistory.toList());
       if (filePath == 'no positions to export') {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -418,6 +440,35 @@ class _GeolocationPageState extends State<GeolocationPage> {
       ),
     );
     if (result == true) _saveSnapshot();
+  }
+
+  Future<void> _showLoadSnapshotAlert() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Load Last Position'),
+        content: _rocketPosition != null
+            ? Text(
+                'Load last saved rocket position?\n\n'
+                'Latitude: ${_rocketPosition!.latitude.toStringAsFixed(6)}\n'
+                'Longitude: ${_rocketPosition!.longitude.toStringAsFixed(6)}\n'
+                'Altitude: ${_rocketPosition!.altitude.toStringAsFixed(1)} m\n'
+                'Timestamp: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(_lastGPSUpdate!)}',
+              )
+            : const Text('No saved rocket position available.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Load Snapshot'),
+          ),
+        ],
+      ),
+    );
+    if (result == true) _loadLastSnapshot();
   }
 
   Future<void> _showClearSnapshotAlert() async {
@@ -502,20 +553,20 @@ class _GeolocationPageState extends State<GeolocationPage> {
                     icon: Icons.speed,
                     label: "Vertical Velocity",
                     value: _gpsService.verticalVelocity != null
-                        ? "${_gpsService.verticalVelocity?.toStringAsFixed(2)} ft/s"
+                        ? "${_gpsService.verticalVelocity?.toStringAsFixed(1)} ft/s"
                         : "N/A",
                   ),
                   GPSDataItem(
                     icon: Icons.straighten,
                     label: "Distance to Rocket",
                     value:
-                        "${_gpsService.hasValidPositions ? _gpsService.calculateDistance().toStringAsFixed(2) : 'N/A'} m",
+                        "${_gpsService.hasValidPositions ? _gpsService.calculateDistance().toStringAsFixed(1) : 'N/A'} m",
                   ),
                   GPSDataItem(
                     icon: Icons.navigation,
                     label: "Bearing to Rocket",
                     value:
-                        "${_gpsService.hasValidPositions ? _gpsService.calculateBearing()?.toStringAsFixed(2) : 'N/A'}°",
+                        "${_gpsService.hasValidPositions ? _gpsService.calculateBearing()?.toStringAsFixed(0) : 'N/A'}°",
                   ),
                   GPSDataItem(
                     icon: Icons.timer,
@@ -556,6 +607,11 @@ class _GeolocationPageState extends State<GeolocationPage> {
                     color: AppTheme.accent,
                     tooltip: 'Save Position',
                   ),
+                  IconButton(
+                      onPressed: _showLoadSnapshotAlert,
+                      icon: const Icon(Icons.restore),
+                      color: AppTheme.accent,
+                      tooltip: 'Load Snapshot'),
                   IconButton(
                     onPressed: _showClearSnapshotAlert,
                     icon: const Icon(Icons.delete),

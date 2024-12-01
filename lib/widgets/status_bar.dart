@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:rocket_gps/src/models/device_state.dart';
-import 'package:bluetooth_classic/bluetooth_classic.dart';
 
 class StatusBar extends StatelessWidget {
   final DeviceState deviceState;
@@ -25,35 +24,6 @@ class StatusBar extends StatelessWidget {
       case DeviceState.disconnected:
         return Colors.grey;
     }
-  }
-
-  Future<void> _checkPermissionsAndConnect(BuildContext context) async {
-    final bluetoothPlugin = BluetoothClassic();
-    final hasPermissions = await bluetoothPlugin.initPermissions();
-
-    if (!hasPermissions) {
-      if (context.mounted) {
-        await showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Permission Required'),
-            content: const Text('Bluetooth permissions are required to connect to devices.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-      return;
-    }
-
-    // Only call onConnect if permissions granted
-    onConnect();
   }
 
   @override
@@ -94,7 +64,7 @@ class StatusBar extends StatelessWidget {
               deviceState == DeviceState.connected ? Icons.bluetooth_disabled : Icons.bluetooth,
             ),
             label: Text(deviceState == DeviceState.connected ? 'Disconnect' : 'Connect'),
-            onPressed: isScanning ? null : () => _checkPermissionsAndConnect(context),
+            onPressed: isScanning ? null : () => onConnect(),
           ),
         ],
       ),

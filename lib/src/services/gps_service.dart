@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:geolocator/geolocator.dart';
+import 'package:rocket_gps/src/models/gps_data.dart';
 
 class GPSService {
   Position? _phonePosition;
@@ -8,6 +9,7 @@ class GPSService {
   double? _previousAltitude;
   DateTime? _previousTimestamp;
   double? _verticalVelocity;
+  double? _rocketAltitude;
 
   // Existing permission and location methods
   Future<Position> getCurrentPosition() async {
@@ -40,7 +42,16 @@ class GPSService {
   void updateRocketPosition(double lat, double lon, double alt) {
     _rocketLatitude = lat;
     _rocketLongitude = lon;
+    _rocketAltitude = alt;
     _calculateVerticalVelocity(alt);
+  }
+
+  GPSData getGPSData() {
+    return GPSData(
+        latitude: _rocketLatitude!,
+        longitude: _rocketLongitude!,
+        altitude: _rocketAltitude!,
+        timestamp: DateTime.now());
   }
 
   // Calculation methods
