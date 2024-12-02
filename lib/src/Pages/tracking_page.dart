@@ -255,6 +255,7 @@ class _TrackingPageState extends State<TrackingPage> {
   }
 
   Future<void> _showMapAlert() async {
+    final hasRocketPosition = _rocketPosition != null;
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -266,7 +267,10 @@ class _TrackingPageState extends State<TrackingPage> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: hasRocketPosition ? () => Navigator.pop(context, true) : null,
+            style: TextButton.styleFrom(
+              foregroundColor: hasRocketPosition ? null : Colors.grey,
+            ),
             child: const Text('Open Map'),
           ),
         ],
@@ -276,6 +280,7 @@ class _TrackingPageState extends State<TrackingPage> {
   }
 
   Future<void> _showExportAlert() async {
+    final hasPositions = _positionHistory.history.isNotEmpty;
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -287,7 +292,10 @@ class _TrackingPageState extends State<TrackingPage> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: hasPositions ? () => Navigator.pop(context, true) : null,
+            style: TextButton.styleFrom(
+              foregroundColor: hasPositions ? null : Colors.grey,
+            ),
             child: const Text('Export KML'),
           ),
         ],
@@ -304,13 +312,7 @@ class _TrackingPageState extends State<TrackingPage> {
       } else if (filePath != null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Saved to: $filePath')),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to export KML file')),
+            SnackBar(content: Text('Exported to $filePath')),
           );
         }
       }
