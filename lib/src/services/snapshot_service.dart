@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:rocket_gps/src/models/gps_data.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/rocket_snapshot.dart';
 
@@ -11,13 +12,15 @@ class SnapshotService {
   }
 
   Future<RocketSnapshot?> getLastSnapshot() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString(_key);
-    if (data == null) return null;
-
     try {
-      return RocketSnapshot.fromJson(jsonDecode(data));
+      final prefs = await SharedPreferences.getInstance();
+      final data = prefs.getString(_key);
+      if (data == null) return null;
+
+      final json = jsonDecode(data);
+      return RocketSnapshot.fromJson(json);
     } catch (e) {
+      print('Error loading snapshot: $e');
       return null;
     }
   }
@@ -25,5 +28,15 @@ class SnapshotService {
   Future<void> clearSnapshot() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_key);
+  }
+
+  //to json
+  Map<String, dynamic>? toJson(RocketSnapshot snapshot) {
+    return {
+      'latitude': snapshot.latitude,
+      'longitude': snapshot.longitude,
+      'altitude': snapshot.altitude,
+      'timestamp': snapshot.timestamp.toIso8601String(),
+    };
   }
 }

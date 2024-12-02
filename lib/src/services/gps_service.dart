@@ -11,19 +11,10 @@ class GPSService {
   double? _verticalVelocity;
   double? _rocketAltitude;
 
-  // Existing permission and location methods
   Future<Position> getCurrentPosition() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       throw Exception('Location services are disabled.');
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions are denied');
-      }
     }
 
     _phonePosition = await Geolocator.getCurrentPosition();
@@ -85,7 +76,7 @@ class GPSService {
     return (bearing * 180 / pi + 360) % 360;
   }
 
-  void _calculateVerticalVelocity(double currentAltitude) {
+  double? _calculateVerticalVelocity(double currentAltitude) {
     final now = DateTime.now();
 
     if (_previousAltitude != null && _previousTimestamp != null) {
@@ -97,6 +88,18 @@ class GPSService {
 
     _previousAltitude = currentAltitude;
     _previousTimestamp = now;
+
+    return _verticalVelocity;
+  }
+
+  void clearData() {
+    _phonePosition = null;
+    _rocketLatitude = null;
+    _rocketLongitude = null;
+    _rocketAltitude = null;
+    _previousAltitude = null;
+    _previousTimestamp = null;
+    _verticalVelocity = null;
   }
 
   // Getters

@@ -52,6 +52,7 @@ class _TrackingPageState extends State<TrackingPage> {
   StreamSubscription? _dataSubscription;
 
   DateTime? _lastGPSUpdate;
+  bool _isSnapshotData = false;
 
   _TrackingPageState() : _gpsService = GPSService();
 
@@ -61,7 +62,7 @@ class _TrackingPageState extends State<TrackingPage> {
     _permissionHandler = PermissionHandler(context);
     _permissionHandler.checkPermissions();
     _mapService = MapService(context: context);
-    _loadLastSnapshot();
+    //_loadLastSnapshot();
     _setupTimers();
   }
 
@@ -75,9 +76,8 @@ class _TrackingPageState extends State<TrackingPage> {
           snapshot.longitude,
           snapshot.altitude,
         );
-        _rocketPosition?.latitude = snapshot.latitude;
-        _rocketPosition?.longitude = snapshot.longitude;
-        _rocketPosition?.altitude = snapshot.altitude;
+        _rocketPosition = _gpsService.getGPSData();
+        _isSnapshotData = true;
       });
     }
   }
@@ -104,12 +104,15 @@ class _TrackingPageState extends State<TrackingPage> {
 
   Future<void> _clearSnapshot() async {
     await _snapshotService.clearSnapshot();
+    _rocketPosition = null;
     setState(() {});
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Snapshot cleared')),
       );
     }
+    _isSnapshotData = false;
+    _gpsService.clearData();
   }
 
   void _setupTimers() {
@@ -177,6 +180,7 @@ class _TrackingPageState extends State<TrackingPage> {
   }
 
   void _setupDataStream() {
+    _isSnapshotData = false;
     _dataSubscription = _bluetoothService.gpsStream.listen(
       (gpsData) {
         setState(() {
@@ -314,38 +318,51 @@ class _TrackingPageState extends State<TrackingPage> {
   }
 
   Future<void> _showSaveSnapshotAlert() async {
+    final hasRocketPosition = _rocketPosition != null;
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Save Position'),
-        content: const Text('Save current rocket position for later use'),
+        content: hasRocketPosition
+            ? const Text('Save current rocket position for later use?')
+            : const Text('No rocket position data available to save.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: hasRocketPosition ? () => Navigator.pop(context, true) : null,
+            style: TextButton.styleFrom(
+              foregroundColor: hasRocketPosition ? null : Colors.grey,
+            ),
             child: const Text('Save Snapshot'),
           ),
         ],
       ),
     );
-    if (result == true) _saveSnapshot();
+
+    if (result == true && hasRocketPosition) {
+      await _saveSnapshot();
+    }
   }
 
   Future<void> _showLoadSnapshotAlert() async {
+    RocketSnapshot? snapshot = await _snapshotService.getLastSnapshot();
+    final bool hasSnapshot = snapshot != null;
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Load Last Position'),
-        content: _rocketPosition != null
+        content: hasSnapshot
             ? Text(
                 'Load last saved rocket position?\n\n'
-                'Latitude: ${_rocketPosition!.latitude.toStringAsFixed(6)}\n'
-                'Longitude: ${_rocketPosition!.longitude.toStringAsFixed(6)}\n'
-                'Altitude: ${_rocketPosition!.altitude.toStringAsFixed(1)} m\n'
-                'Timestamp: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(_lastGPSUpdate!)}',
+                'Latitude: ${snapshot.latitude.toStringAsFixed(6)}\n'
+                'Longitude: ${snapshot.longitude.toStringAsFixed(6)}\n'
+                'Altitude: ${snapshot.altitude.toStringAsFixed(1)} m\n'
+                'Timestamp: ${DateFormat('yyyy-MM-dd HH:mm:ss').format(snapshot.timestamp)}',
               )
             : const Text('No saved rocket position available.'),
         actions: [
@@ -354,34 +371,50 @@ class _TrackingPageState extends State<TrackingPage> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: hasSnapshot ? () => Navigator.pop(context, true) : null,
+            style: TextButton.styleFrom(
+              foregroundColor: hasSnapshot ? null : Colors.grey,
+            ), // Disabled when no snapshot
             child: const Text('Load Snapshot'),
           ),
         ],
       ),
     );
-    if (result == true) _loadLastSnapshot();
+
+    if (result == true && hasSnapshot) {
+      _loadLastSnapshot();
+    }
   }
 
   Future<void> _showClearSnapshotAlert() async {
+    final hasSnapshot = await _snapshotService.getLastSnapshot() != null;
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear Saved Position'),
-        content: const Text('Remove saved rocket position data?'),
+        content: hasSnapshot
+            ? const Text('Remove saved rocket position data?')
+            : const Text('No saved rocket position available.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: hasSnapshot ? () => Navigator.pop(context, true) : null,
+            style: TextButton.styleFrom(
+              foregroundColor: hasSnapshot ? null : Colors.grey,
+            ),
             child: const Text('Clear Snapshot'),
           ),
         ],
       ),
     );
-    if (result == true) _clearSnapshot();
+
+    if (result == true && hasSnapshot) {
+      await _clearSnapshot();
+    }
   }
 
   @override
@@ -423,6 +456,7 @@ class _TrackingPageState extends State<TrackingPage> {
                       onHistoryTap: _showPositionHistory,
                       showDMS: _showDMS,
                       onFormatToggle: () => setState(() => _showDMS = !_showDMS),
+                      isSnapshot: _isSnapshotData,
                     ),
                   ),
                   const SizedBox(width: 4),

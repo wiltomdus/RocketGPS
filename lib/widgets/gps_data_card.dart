@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:rocket_gps/app_theme.dart';
+import 'package:rocket_gps/widgets/Snapshot_banner.dart';
 
 class GPSDataCard extends StatelessWidget {
   final String title;
@@ -8,6 +9,7 @@ class GPSDataCard extends StatelessWidget {
   final VoidCallback? onHistoryTap;
   final bool showDMS;
   final VoidCallback onFormatToggle;
+  final bool isSnapshot;
 
   const GPSDataCard({
     super.key,
@@ -16,6 +18,7 @@ class GPSDataCard extends StatelessWidget {
     this.onHistoryTap,
     required this.showDMS,
     required this.onFormatToggle,
+    this.isSnapshot = false,
   });
 
   String _formatCoordinate(double coordinate, bool isLatitude) {
@@ -34,50 +37,61 @@ class GPSDataCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Card(
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.accent,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.accent,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                    const SizedBox(width: 2), // Add spacing between title and button
+                    SizedBox(
+                      width: 48, // Fixed width for consistency
+                      child: IconButton(
+                        icon: Icon(showDMS ? Icons.numbers : Icons.schedule),
+                        onPressed: onFormatToggle,
+                        tooltip: showDMS ? 'Show Decimal' : 'Show DMS',
+                        padding: EdgeInsets.zero, // Reduce padding
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 2), // Add spacing between title and button
-                SizedBox(
-                  width: 48, // Fixed width for consistency
-                  child: IconButton(
-                    icon: Icon(showDMS ? Icons.numbers : Icons.schedule),
-                    onPressed: onFormatToggle,
-                    tooltip: showDMS ? 'Show Decimal' : 'Show DMS',
-                    padding: EdgeInsets.zero, // Reduce padding
-                  ),
-                ),
+                const SizedBox(height: 16),
+                if (position != null) ...[
+                  _buildGPSItem(Icons.location_on, "Latitude", _formatCoordinate(position!.latitude, true)),
+                  _buildGPSItem(Icons.location_on, "Longitude", _formatCoordinate(position!.longitude, false)),
+                  _buildGPSItem(Icons.height, "Altitude", "${position!.altitude.toStringAsFixed(1)} m"),
+                  if (onHistoryTap != null) _buildGPSItem(Icons.history, "History", "View", onTap: onHistoryTap),
+                ] else
+                  const Text("Waiting for data...", style: TextStyle(color: Colors.grey)),
               ],
             ),
-            const SizedBox(height: 16),
-            if (position != null) ...[
-              _buildGPSItem(Icons.location_on, "Latitude", _formatCoordinate(position!.latitude, true)),
-              _buildGPSItem(Icons.location_on, "Longitude", _formatCoordinate(position!.longitude, false)),
-              _buildGPSItem(Icons.height, "Altitude", "${position!.altitude.toStringAsFixed(1)} m"),
-              if (onHistoryTap != null) _buildGPSItem(Icons.history, "History", "View", onTap: onHistoryTap),
-            ] else
-              const Text("Waiting for data...", style: TextStyle(color: Colors.grey)),
-          ],
+          ),
         ),
-      ),
+        if (isSnapshot)
+          const Positioned(
+            bottom: 10,
+            right: 10,
+            child: SnapshotBanner(),
+          ),
+      ],
     );
   }
 
